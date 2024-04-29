@@ -35,7 +35,7 @@ To summon the RiddleSolver genie and unravel the riddles of your Git commits, us
 riddlesolver <repo> [options]
 ```
 
-Replace `<repo>` with the path to your local repository, the URL of a remote repository, or the `owner/repo` format for GitHub repositories.
+Replace `<repo>` with the path to your local repository, the URL of a remote repository, or the owner/repo format for GitHub repositories.
 
 ### Options 🎛️
 
@@ -53,41 +53,41 @@ Replace `<repo>` with the path to your local repository, the URL of a remote rep
 
 ### Examples 🌟
 
-1. Summon the genie to unravel the riddles of a local repository:
+Summon the genie to unravel the riddles of a local repository:
 
-   ```bash
-   riddlesolver /path/to/local/repo
-   ```
+```bash
+riddlesolver /path/to/local/repo
+```
 
-2. Summon the genie to decipher the commits of a remote repository within a specific date range:
+Summon the genie to decipher the commits of a remote repository within a specific date range:
 
-   ```bash
-   riddlesolver https://github.com/owner/repo -s 2023-01-01 -e 2023-01-31
-   ```
+```bash
+riddlesolver https://github.com/owner/repo -s 2023-01-01 -e 2023-01-31
+```
 
-3. Summon the genie to reveal the secrets of the last 2 weeks in silent mode:
+Summon the genie to reveal the secrets of the last 2 weeks in silent mode:
 
-   ```bash
-   riddlesolver owner/repo -w 2 --silent
-   ```
+```bash
+riddlesolver owner/repo -w 2 --silent
+```
 
-4. Summon the genie to uncover the riddles of a specific branch:
+Summon the genie to uncover the riddles of a specific branch:
 
-   ```bash
-   riddlesolver /path/to/local/repo -b feature-branch
-   ```
+```bash
+riddlesolver /path/to/local/repo -b feature-branch
+```
 
-5. Summon the genie to expose the commits by a specific author:
+Summon the genie to expose the commits by a specific author:
 
-   ```bash
-   riddlesolver owner/repo -a john@example.com
-   ```
+```bash
+riddlesolver owner/repo -a john@example.com
+```
 
-6. Summon the genie to capture its wisdom in a markdown file:
+Summon the genie to capture its wisdom in a markdown file:
 
-   ```bash
-   riddlesolver /path/to/local/repo -o summary.md
-   ```
+```bash
+riddlesolver /path/to/local/repo -o summary.md
+```
 
 ## Configuration 🔧
 
@@ -112,7 +112,7 @@ batch_size = 50
 
 ## Contributing 🤝
 
-If you wish to contribute to the genie's power and make it even more extraordinary, please open an issue or submit a pull request on the [GitHub repository](https://github.com/yourusername/riddlesolver). The genie appreciates all the help it can get!
+If you wish to contribute to the genie's power and make it even more extraordinary, please open an issue or submit a pull request on the [GitHub repository](https://github.com/AnomalyBound/riddlesolver). The genie appreciates all the help it can get!
 
 ## License 📜
 
@@ -121,7 +121,5 @@ RiddleSolver is released under the [MIT License](https://opensource.org/licenses
 ## Acknowledgements 🙏
 
 The genie would like to express its gratitude to the mighty OpenAI for granting it the power of language understanding and generation. Without their API, the genie would be just another ordinary commit summarizer.
-
----
 
 Now, prepare to be amazed as RiddleSolver unravels the mysteries of your Git commits and brings clarity to your development journey! 🎉✨

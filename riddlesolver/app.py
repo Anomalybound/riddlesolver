@@ -2,13 +2,12 @@ import argparse
 import configparser
 import os
 import tempfile
+import openai
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-
 from git import Repo
-
-import openai
 
 # Template for the configuration file
 CONFIG_TEMPLATE = """
