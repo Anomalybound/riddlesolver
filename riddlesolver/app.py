@@ -386,6 +386,107 @@ def set_config_value(config_path, section, key, value):
     print(f"Updated configuration: [{section}] {key} = {value}")
 
 
+def clone_repository(repo_url, clone_dir=None):
+    """
+    Clone a Git repository from the given URL.
+
+    Args:
+        repo_url (str): The URL of the remote repository.
+        clone_dir (str, optional): The directory to clone the repository into. If not provided, a temporary directory is used.
+
+    Returns:
+        str: The path to the cloned repository.
+    """
+    try:
+        if clone_dir is None:
+            temp_dir = tempfile.gettempdir()
+            repo_name = os.path.basename(repo_url).replace(".git", "")
+            repo_dir = os.path.join(temp_dir, repo_name)
+        else:
+            repo_dir = os.path.join(clone_dir, os.path.basename(repo_url).replace(".git", ""))
+
+        if os.path.exists(repo_dir):
+            print(f"Repository already exists at {repo_dir}. Fetching updates...")
+            repo = Repo(repo_dir)
+            repo.git.fetch(all=True)  # Fetch all branches and tags
+        else:
+            print(f"Cloning {repo_url} to {repo_dir}")
+            repo = Repo.clone_from(repo_url, repo_dir, no_checkout=True, depth=1)  # Clone with minimal history
+            repo.git.fetch(all=True)  # Fetch all branches and tags
+
+        return repo_dir
+    except GitCommandError as e:
+        print(f"Error cloning repository: {str(e)}")
+        raise
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        raise
+
+
+def get_commits(repo_path, start_date, end_date, branch=None, author=None):
+    """
+    Retrieve commits from a Git repository within the specified date range.
+
+    Args:
+        repo_path (str): The path to the Git repository.
+        start_date (datetime): The start date of the commit range (inclusive).
+        end_date (datetime): The end date of the commit range (inclusive).
+        branch (str, optional): The branch to fetch commits from. If not provided, all branches are considered.
+        author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
+
+    Returns:
+        list: A list of commit objects within the specified date range.
+    """
+    try:
+        repo = Repo(repo_path)
+    except InvalidGitRepositoryError:
+        print(f"Error: '{repo_path}' is not a valid Git repository.")
+        raise
+
+    return fetch_commits_from_repo(repo, start_date, end_date, branch, author)
+
+
+def summarize_commits(commit_messages, branch_name, model, openai_api_key, base_url):
+    """
+    Generate a summary of the given commit messages using the OpenAI API.
+
+    Args:
+        commit_messages (list): A list of commit message strings.
+        branch_name (str): The name of the branch associated with the commits.
+        model (str): The OpenAI model to use for generating the summary.
+        openai_api_key (str): The API key for accessing the OpenAI API.
+        base_url (str): The base URL of the OpenAI API.
+
+    Returns:
+        str: The generated summary of the commit messages.
+    """
+    summary = get_openai_summary("\n".join(commit_messages), branch_name, model, openai_api_key, base_url)
+    if summary:
+        return summary
+    else:
+        raise Exception("Failed to generate summary")
+
+
+def save_summary(summary, output_file):
+    """
+    Save the commit summary to a file.
+
+    Args:
+        summary (str): The commit summary to save.
+        output_file (str): The path to save the summary as a markdown file.
+
+    Returns:
+        None
+    """
+    try:
+        with open(output_file, "w") as file:
+            file.write(summary)
+        print(f"Summary saved to {output_file}")
+    except IOError as e:
+        print(f"Error writing to output file: {str(e)}")
+        raise
+
+
 def main():
     """
     The main entry point of the program.

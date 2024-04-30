@@ -2,7 +2,7 @@
 
 Ladies and gentlemen, boys and girls, gather around for the most extraordinary, mind-bending, and side-splitting Git commit summarizer you've ever witnessed! 🤯🎪 Introducing... RiddleSolver! 🎭
 
-RiddleSolver is like a magical genie 🧞‍♂️ that grants your wish to understand the cryptic riddles known as Git commits. With a wave of its virtual wand 🪄, RiddleSolver conjures up clear, concise, and standardized summaries of your Git commit messages, leaving you in awe and amazement! 🎆
+RiddleSolver is like a magical genie 🧞‍ that grants your wish to understand the cryptic riddles known as Git commits. With a wave of its virtual wand 🪄, RiddleSolver conjures up clear, concise, and standardized summaries of your Git commit messages, leaving you in awe and amazement! 🎆
 
 ## ✨ Features
 
@@ -14,9 +14,9 @@ RiddleSolver is like a magical genie 🧞‍♂️ that grants your wish to unde
 - 🎛️ Allows you to summon the genie with configurable OpenAI API settings
 - 🤫 Offers a silent mode for those times when you need to keep the genie's secrets
 - 🌳 Lets you specify a branch to focus the genie's powers on
-- 🧙‍♂️ Enables you to summon commits by a specific author (because even genies play favorites!)
+- 🧙‍️ Enables you to summon commits by a specific author (because even genies play favorites!)
 - 📝 Grants you the ability to capture the genie's wisdom in a markdown file (for posterity, of course!)
-- 🧙‍♂️ Bestows upon you the power to set configuration values using the mystical `config` subcommand
+- 🔧 Bestows upon you the power to set configuration values using the mystical `config` subcommand
 
 ## 🧪 Installation
 
@@ -26,9 +26,9 @@ To unleash the power of RiddleSolver, simply recite the following incantation in
 pip install riddlesolver
 ```
 
-And voila! The genie is now at your command! 🧞‍♂️✨
+And voila! The genie is now at your command! 🧞️✨
 
-## 🕮 Usage
+## 📖 Usage
 
 ### Summoning the Genie
 
@@ -107,6 +107,49 @@ Summon the genie to capture its wisdom in a markdown file:
 ```bash
 riddlesolver /path/to/local/repo -o summary.md
 ```
+
+## 🛠️ Development Toolkit
+
+RiddleSolver not only serves as a command-line tool but also provides a well-structured API for developers to integrate its functionality into their own projects. You can use RiddleSolver as a development toolkit to clone repositories, retrieve commits, generate summaries, and save the summaries to files.
+
+### API Functions
+
+1. `clone_repository(repo_url, clone_dir=None)`: Clones a Git repository from the given URL into the specified directory (or a temporary directory if not provided). Returns the path to the cloned repository.
+
+2. `get_commits(repo_path, start_date, end_date, branch=None, author=None)`: Retrieves commits from a Git repository within the specified date range, optionally filtered by branch and author. Returns a list of commit objects.
+
+3. `summarize_commits(commit_messages, branch_name, model, openai_api_key, base_url)`: Generates a summary of the given commit messages using the OpenAI API. Returns the generated summary as a string.
+
+4. `save_summary(summary, output_file)`: Saves the commit summary to a file at the specified output path.
+
+### Example Usage
+
+Here's an example of how you can use RiddleSolver as a development toolkit in your own project:
+
+```python
+from riddlesolver import clone_repository, get_commits, summarize_commits, save_summary
+
+repo_url = "https://github.com/username/repo.git"
+clone_dir = "/path/to/clone/directory"
+start_date = datetime(2023, 1, 1)
+end_date = datetime(2023, 12, 31)
+branch = "main"
+author = "john@example.com"
+model = "gpt-3.5-turbo"
+openai_api_key = "YOUR_API_KEY"
+base_url = "https://api.openai.com/v1"
+output_file = "summary.md"
+
+repo_path = clone_repository(repo_url, clone_dir)
+commits = get_commits(repo_path, start_date, end_date, branch, author)
+commit_messages = [commit.message for commit in commits]
+summary = summarize_commits(commit_messages, branch, model, openai_api_key, base_url)
+save_summary(summary, output_file)
+```
+
+By importing the necessary functions from RiddleSolver, you can easily integrate its functionality into your own projects, allowing you to clone repositories, retrieve commits, generate summaries, and save the summaries to files.
+
+Feel free to explore the possibilities and unleash the power of RiddleSolver in your development workflow! 🚀
 
 ## 🔧 Configuration
 
