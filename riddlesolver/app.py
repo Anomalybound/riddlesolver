@@ -3,8 +3,10 @@ import configparser
 import os
 import tempfile
 import openai
+import requests
 
 from collections import defaultdict
+from dateutil.parser import parse
 from datetime import datetime, timedelta
 from pathlib import Path
 from git import Repo, InvalidGitRepositoryError, GitCommandError
@@ -19,6 +21,9 @@ base_url = https://api.openai.com/v1
 [general]
 verbose = False
 batch_size = 50
+
+[github]
+access_token = YOUR_GITHUB_ACCESS_TOKEN
 """
 
 # Template for the prompt to be sent to the OpenAI API
@@ -97,6 +102,54 @@ def get_openai_summary(commit_messages, branch_name, model, openai_api_key, base
         return None
 
 
+def fetch_commits_from_github_repo(repo_path, start_date, end_date, access_token, branch=None, author=None):
+    """
+    Fetch commits from a GitHub repository within the specified date range using the GitHub REST API.
+
+    Args:
+        repo_path (str): The repository path in the format "owner/repo".
+        start_date (datetime): The start date of the commit range (inclusive).
+        end_date (datetime): The end date of the commit range (inclusive).
+        access_token (str): The GitHub Access Token for authentication.
+        branch (str, optional): The branch to fetch commits from. If not provided, the default branch is used.
+        author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
+
+    Returns:
+        tuple: A tuple containing the list of commit objects within the specified date range and the list of branch names.
+    """
+    url = f"https://api.github.com/repos/{repo_path}/commits"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    params = {
+        "since": start_date.isoformat(),
+        "until": end_date.isoformat(),
+        "sha": branch
+    }
+    if author:
+        params["author"] = author
+
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    commits = response.json()
+
+    branch_names = []
+    if branch:
+        branch_names.append(branch)
+    else:
+        # Fetch the list of branches from the repository
+        branches_url = f"https://api.github.com/repos/{repo_path}/branches"
+        branches_response = requests.get(branches_url, headers=headers)
+        branches_response.raise_for_status()
+        branches = branches_response.json()
+        branch_names = [branch["name"] for branch in branches]
+
+    print(f"Fetched {len(commits)} commits from {repo_path}")
+    return commits, branch_names
+
+
 def fetch_commits_from_remote_repo(repo_url, start_date, end_date, clone_dir=None, branch=None, author=None):
     """
     Fetch commits from a remote repository within the specified date range.
@@ -110,26 +163,26 @@ def fetch_commits_from_remote_repo(repo_url, start_date, end_date, clone_dir=Non
         author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
 
     Returns:
-        list: A list of commit objects within the specified date range.
+        tuple: A tuple containing the list of commit objects within the specified date range and the list of branch names.
     """
     try:
         if clone_dir is None:
             temp_dir = tempfile.gettempdir()
             repo_name = os.path.basename(repo_url).replace(".git", "")
             repo_dir = os.path.join(temp_dir, repo_name)
-            commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
+            commits, branch_names = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
         else:
             repo_dir = os.path.join(clone_dir, os.path.basename(repo_url).replace(".git", ""))
-            commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
+            commits, branch_names = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
 
         print(f"Fetched {len(commits)} commits from {repo_url}")
-        return commits
+        return commits, branch_names
     except GitCommandError as e:
         print(f"Error cloning repository: {str(e)}")
-        return []
+        return [], []
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-        return []
+        return [], []
 
 
 def get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author):
@@ -145,7 +198,7 @@ def get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branc
         author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
 
     Returns:
-        list: A list of commit objects within the specified date range.
+        tuple: A tuple containing the list of commit objects within the specified date range and the list of branch names.
     """
     try:
         if os.path.exists(repo_dir):
@@ -159,16 +212,16 @@ def get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branc
 
         if branch and branch not in repo.heads:
             print(f"Branch '{branch}' not found in the repository.")
-            return []
+            return [], []
 
-        commits = fetch_commits_from_repo(repo, start_date, end_date, branch, author)
-        return commits
+        commits, branch_names = fetch_commits_from_repo(repo, start_date, end_date, branch, author)
+        return commits, branch_names
     except GitCommandError as e:
         print(f"Error fetching commits: {str(e)}")
-        return []
+        return [], []
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-        return []
+        return [], []
 
 
 def fetch_commits_from_repo(repo, start_date, end_date, branch=None, author=None):
@@ -183,15 +236,22 @@ def fetch_commits_from_repo(repo, start_date, end_date, branch=None, author=None
         author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
 
     Returns:
-        list: A list of commit objects within the specified date range.
+        tuple: A tuple containing the list of commit objects within the specified date range and the list of branch names.
     """
     commits = []
-    for commit in repo.iter_commits(branch):
-        commit_date = datetime.fromtimestamp(commit.committed_date)
-        if start_date <= commit_date <= end_date:
-            if author is None or commit.author.email == author or commit.author.name == author:
-                commits.append(commit)
-    return commits
+    branch_names = []
+
+    for branch in repo.branches:
+        branch_name = branch.name
+        branch_names.append(branch_name)
+
+        for commit in repo.iter_commits(branch_name):
+            commit_date = datetime.fromtimestamp(commit.committed_date)
+            if start_date <= commit_date <= end_date:
+                if author is None or commit.author.email == author or commit.author.name == author:
+                    commits.append(commit)
+
+    return commits, branch_names
 
 
 def fetch_commits_from_local_repo(repo_path, start_date, end_date, branch=None, author=None):
@@ -206,18 +266,19 @@ def fetch_commits_from_local_repo(repo_path, start_date, end_date, branch=None, 
         author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
 
     Returns:
-        list: A list of commit objects within the specified date range.
+        tuple: A tuple containing the list of commit objects within the specified date range and the list of branch names.
     """
     try:
         repo = Repo(repo_path)
     except InvalidGitRepositoryError:
         print(f"Error: '{repo_path}' is not a valid Git repository.")
-        return []
+        return [], []
     return fetch_commits_from_repo(repo, start_date, end_date, branch, author)
 
 
+
 def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, model, base_url, verbose, batch_size,
-                            silent=False, branch=None, author=None, output_file=None):
+                            silent=False, branch=None, author=None, output_file=None, access_token=None):
     """
     Generate a summary of the commits in a repository within the specified date range.
 
@@ -231,24 +292,35 @@ def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, mod
         verbose (bool): Whether to enable verbose output.
         batch_size (int): The number of commits to process in each batch.
         silent (bool, optional): Whether to run in silent mode without interactive prompts. Defaults to False.
-        branch (str, optional): The branch to fetch commits from. If not provided, all branches are considered.
+        branch (str, optional): The branch to fetch commits from. If not provided, the default branch is used.
         author (str, optional): The email or name of the author to filter commits by. If not provided, all authors are considered.
         output_file (str, optional): The path to save the summary as a markdown file. If not provided, the summary is printed to the console.
+        access_token (str, optional): The GitHub Access Token for authentication. Required for GitHub repositories.
     """
-    is_remote_repo = repo_path.startswith(("https://", "http://", "git@"))
+    if repo_path is None:
+        raise ValueError("Repository path is required.")
 
-    if is_remote_repo:
-        if silent:
-            clone_dir = os.getcwd()
-            commits = fetch_commits_from_remote_repo(repo_path, start_date, end_date, clone_dir, branch, author)
-        else:
-            clone_dir = input(
-                f"Enter the directory to clone {repo_path} (leave blank for current directory): ") or os.getcwd()
-            commits = fetch_commits_from_remote_repo(repo_path, start_date, end_date, clone_dir, branch, author)
-        repo = Repo(clone_dir)
+    if repo_path.startswith(("https://github.com/", "http://github.com/", "git@github.com:")):
+        if access_token is None:
+            raise ValueError("GitHub Access Token is required for GitHub repositories.")
+        repo_owner, repo_name = repo_path.rstrip("/").split("/")[-2:]
+        repo_path = f"{repo_owner}/{repo_name}"
+        commits, branch_names = fetch_commits_from_github_repo(repo_path, start_date, end_date, access_token, branch,
+                                                               author)
     else:
-        commits = fetch_commits_from_local_repo(repo_path, start_date, end_date, branch, author)
-        repo = Repo(repo_path)
+        is_remote_repo = repo_path.startswith(("https://", "http://", "git@"))
+        if is_remote_repo:
+            if silent:
+                clone_dir = os.getcwd()
+                commits, branch_names = fetch_commits_from_remote_repo(repo_path, start_date, end_date, clone_dir,
+                                                                       branch, author)
+            else:
+                clone_dir = input(
+                    f"Enter the directory to clone {repo_path} (leave blank for current directory): ") or os.getcwd()
+                commits, branch_names = fetch_commits_from_remote_repo(repo_path, start_date, end_date, clone_dir,
+                                                                       branch, author)
+        else:
+            commits, branch_names = fetch_commits_from_local_repo(repo_path, start_date, end_date, branch, author)
 
     if not commits:
         print("No commits found within the specified date range.")
@@ -262,20 +334,17 @@ def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, mod
     processed_commits = set()
 
     for commit in commits:
-        if commit.hexsha in processed_commits:
+        commit_id = commit["sha"] if isinstance(commit, dict) else commit.hexsha
+        if commit_id in processed_commits:
             continue
-
-        branch_names = repo.git.branch(contains=commit.hexsha).split('\n')
-        branch_names = [name.strip() for name in branch_names if name.strip()]
 
         for branch_name in branch_names:
             if branch is None or branch_name == branch:
-                if repo.head.is_detached and branch_name.startswith("HEAD detached"):
-                    if verbose:
-                        print(f"Skipping detached branch: {branch_name}")
-                    continue
-                commit_batches[commit.author.email][branch_name].append(commit)
-                processed_commits.add(commit.hexsha)
+                if isinstance(commit, dict):
+                    commit_batches[commit["commit"]["author"]["email"]][branch_name].append(commit)
+                else:
+                    commit_batches[commit.author.email][branch_name].append(commit)
+                processed_commits.add(commit_id)
 
     output = []
     for author_email, branch_commits in commit_batches.items():
@@ -284,9 +353,16 @@ def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, mod
 
             for batch in batched_commits:
                 actual_batch_size = len(batch)
-                actual_start_date = datetime.fromtimestamp(batch[0].committed_date)
-                actual_end_date = datetime.fromtimestamp(batch[-1].committed_date)
-                commit_messages = [c.message for c in batch]
+
+                # Get the start and end dates of the batch
+                if isinstance(batch[0], dict):
+                    actual_start_date = parse(batch[0]["commit"]["author"]["date"])
+                    actual_end_date = parse(batch[-1]["commit"]["author"]["date"])
+                else:
+                    actual_start_date = datetime.fromtimestamp(batch[0].committed_date)
+                    actual_end_date = datetime.fromtimestamp(batch[-1].committed_date)
+
+                commit_messages = [c["commit"]["message"] if isinstance(c, dict) else c.message for c in batch]
 
                 duration = (actual_end_date - actual_start_date).days
                 summary = get_openai_summary("\n".join(commit_messages), branch_name, model, openai_api_key, base_url)
@@ -419,7 +495,7 @@ def clone_repository(repo_url, clone_dir=None):
         print(f"Error cloning repository: {str(e)}")
         raise
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        print(f"An error occurred: {e}")
         raise
 
 
@@ -533,6 +609,7 @@ def main():
     base_url = config.get("openai", "base_url")
     verbose = args.verbose or config.getboolean("general", "verbose", fallback=False)
     batch_size = config.getint("general", "batch_size", fallback=50)
+    access_token = config.get("github", "access_token", fallback=None)
 
     if args.repo is None:
         parser.error("Repository path or URL is required.")
@@ -557,7 +634,7 @@ def main():
 
     try:
         generate_commit_summary(args.repo, start_date, end_date, openai_api_key, model, base_url, verbose, batch_size,
-                                args.silent, args.branch, args.author, args.output)
+                                args.silent, args.branch, args.author, args.output, access_token)
     except configparser.Error as e:
         print(f"Error in configuration file: {str(e)}")
     except Exception as e:
