@@ -108,48 +108,45 @@ Summon the genie to capture its wisdom in a markdown file:
 riddlesolver /path/to/local/repo -o summary.md
 ```
 
-## 🛠️ Development Toolkit
+Here's the updated Development Toolkit section with the necessary changes to support the API functions:
 
-RiddleSolver not only serves as a command-line tool but also provides a well-structured API for developers to integrate its functionality into their own projects. You can use RiddleSolver as a development toolkit to clone repositories, retrieve commits, generate summaries, and save the summaries to files.
+**🛠️ Development Toolkit**
+---------------------------
 
-### API Functions
+RiddleSolver not only serves as a command-line tool but also provides a well-structured API for developers to integrate its functionality into their own projects. You can use RiddleSolver as a development toolkit to fetch commits, generate summaries, and save the summaries to files.
 
-1. `clone_repository(repo_url, clone_dir=None)`: Clones a Git repository from the given URL into the specified directory (or a temporary directory if not provided). Returns the path to the cloned repository.
+### **API Functions**
 
-2. `get_commits(repo_path, start_date, end_date, branch=None, author=None)`: Retrieves commits from a Git repository within the specified date range, optionally filtered by branch and author. Returns a list of commit objects.
+1.  `fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None)`: Fetches commits from a repository within the specified date range, optionally filtered by branch and author. Returns a list of commit objects.
+    
+2.  `generate_summary(commit_batches, config)`: Generates a summary of commit batches using the OpenAI API. Returns the generated summary as a string.
+    
+3.  `save_summary_to_file(summary, output_file)`: Saves the commit summary to a file at the specified output path.
+    
 
-3. `summarize_commits(commit_messages, branch_name, model, openai_api_key, base_url)`: Generates a summary of the given commit messages using the OpenAI API. Returns the generated summary as a string.
-
-4. `save_summary(summary, output_file)`: Saves the commit summary to a file at the specified output path.
-
-### Example Usage
+### **Example Usage**
 
 Here's an example of how you can use RiddleSolver as a development toolkit in your own project:
 
 ```python
-from riddlesolver import clone_repository, get_commits, summarize_commits, save_summary
+from riddlesolver import fetch_commits, generate_summary, save_summary_to_file
+from riddlesolver.config import load_config_from_file
+from datetime import datetime
 
-repo_url = "https://github.com/username/repo.git"
-clone_dir = "/path/to/clone/directory"
+repo_path = "https://github.com/username/repo.git"
 start_date = datetime(2023, 1, 1)
 end_date = datetime(2023, 12, 31)
 branch = "main"
 author = "john@example.com"
-model = "gpt-3.5-turbo"
-openai_api_key = "YOUR_API_KEY"
-base_url = "https://api.openai.com/v1"
+access_token = "YOUR_ACCESS_TOKEN"
+repo_type = "github"
 output_file = "summary.md"
 
-repo_path = clone_repository(repo_url, clone_dir)
-commits = get_commits(repo_path, start_date, end_date, branch, author)
-commit_messages = [commit.message for commit in commits]
-summary = summarize_commits(commit_messages, branch, model, openai_api_key, base_url)
-save_summary(summary, output_file)
+config = load_config_from_file()
+batched_commits = fetch_commits(repo_path, start_date, end_date, branch, author, access_token, repo_type)
+summary = generate_summary(batched_commits, config)
+save_summary_to_file(summary, output_file)
 ```
-
-By importing the necessary functions from RiddleSolver, you can easily integrate its functionality into your own projects, allowing you to clone repositories, retrieve commits, generate summaries, and save the summaries to files.
-
-Feel free to explore the possibilities and unleash the power of RiddleSolver in your development workflow! 🚀
 
 ## 🔧 Configuration
 
