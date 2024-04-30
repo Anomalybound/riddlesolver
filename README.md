@@ -1,23 +1,24 @@
-# RiddleSolver - A Git Commit(Riddles) Summarizer! 🎉
+# RiddleSolver 🎩🔍
 
 Ladies and gentlemen, boys and girls, gather around for the most extraordinary, mind-bending, and side-splitting Git commit summarizer you've ever witnessed! 🤯🎪 Introducing... RiddleSolver! 🎭
 
 RiddleSolver is like a magical genie 🧞‍♂️ that grants your wish to understand the cryptic riddles known as Git commits. With a wave of its virtual wand 🪄, RiddleSolver conjures up clear, concise, and standardized summaries of your Git commit messages, leaving you in awe and amazement! 🎆
 
-## Features ✨
+## ✨ Features
 
 - 🔮 Unravels the mysteries of Git commits and reveals their true purpose
 - 🌿 Works its magic on both local and remote repositories (it's a versatile genie!)
 - 📅 Grants you the power to specify a custom date range or relative time periods (days, weeks, months)
 - 🔍 Categorizes changes using the enchanting gitmoji conventions (because even genies love emojis!)
 - 💡 Provides mind-blowing insights and observations about the commits (prepare to be enlightened!)
-- 🎛️ Allows you to summon the genie with configurable batch size and OpenAI API settings
+- 🎛️ Allows you to summon the genie with configurable OpenAI API settings
 - 🤫 Offers a silent mode for those times when you need to keep the genie's secrets
 - 🌳 Lets you specify a branch to focus the genie's powers on
 - 🧙‍♂️ Enables you to summon commits by a specific author (because even genies play favorites!)
 - 📝 Grants you the ability to capture the genie's wisdom in a markdown file (for posterity, of course!)
+- 🧙‍♂️ Bestows upon you the power to set configuration values using the mystical `config` subcommand
 
-## Installation 🧪
+## 🧪 Installation
 
 To unleash the power of RiddleSolver, simply recite the following incantation in your terminal:
 
@@ -27,7 +28,9 @@ pip install riddlesolver
 
 And voila! The genie is now at your command! 🧞‍♂️✨
 
-## Usage 🕮
+## 🕮 Usage
+
+### Summoning the Genie
 
 To summon the RiddleSolver genie and unravel the riddles of your Git commits, use the following command:
 
@@ -50,6 +53,22 @@ Replace `<repo>` with the path to your local repository, the URL of a remote rep
 - `-b`, `--branch`: Specify the branch name to focus the genie's powers on
 - `-a`, `--author`: Specify the author's email or name to filter commits by
 - `-o`, `--output`: Specify the path to save the genie's wisdom as a markdown file
+
+### Configuring the Genie
+
+To customize the genie's behavior and grant it access to the OpenAI API, use the mystical `config` subcommand:
+
+```bash
+riddlesolver config set <section> <key> <value>
+```
+
+For example, to set the OpenAI API key:
+
+```bash
+riddlesolver config set openai api_key YOUR_API_KEY
+```
+
+The genie will store its secrets in the sacred scroll located at `~/.riddlesolver/config.ini`.
 
 ### Examples 🌟
 
@@ -89,9 +108,9 @@ Summon the genie to capture its wisdom in a markdown file:
 riddlesolver /path/to/local/repo -o summary.md
 ```
 
-## Configuration 🔧
+## 🔧 Configuration
 
-To customize the genie's behavior and grant it access to the OpenAI API, create a sacred scroll called `config.ini` in the genie's realm (`~/.riddlesolver/config.ini`).
+The genie's secrets are stored in the sacred scroll located at `~/.riddlesolver/config.ini`. Here's a glimpse of what it contains:
 
 ```ini
 [openai]
@@ -110,16 +129,20 @@ batch_size = 50
 - `verbose`: Set to `True` to enable verbose mode and witness the genie's behind-the-scenes magic
 - `batch_size`: Specify the number of riddles the genie should process in each batch (default: `50`)
 
-## Contributing 🤝
+## 🤝 Contributing
 
 If you wish to contribute to the genie's power and make it even more extraordinary, please open an issue or submit a pull request on the [GitHub repository](https://github.com/AnomalyBound/riddlesolver). The genie appreciates all the help it can get!
 
-## License 📜
+## 📜 License
 
 RiddleSolver is released under the [MIT License](https://opensource.org/licenses/MIT), granting you the power to use, modify, and distribute the genie as you see fit.
 
-## Acknowledgements 🙏
+## 🙏 Acknowledgements
 
 The genie would like to express its gratitude to the mighty OpenAI for granting it the power of language understanding and generation. Without their API, the genie would be just another ordinary commit summarizer.
+
+## 🚀 Version
+
+RiddleSolver is currently at version 0.1.6, ready to unravel the mysteries of your Git commits like never before!
 
 Now, prepare to be amazed as RiddleSolver unravels the mysteries of your Git commits and brings clarity to your development journey! 🎉✨

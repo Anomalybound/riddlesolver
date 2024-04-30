@@ -7,7 +7,7 @@ import openai
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from git import Repo
+from git import Repo, InvalidGitRepositoryError, GitCommandError
 
 # Template for the configuration file
 CONFIG_TEMPLATE = """
@@ -78,7 +78,17 @@ def get_openai_summary(commit_messages, branch_name, model, openai_api_key, base
                 "content": PROMPT_TEMPLATE.format(branch_name=branch_name, commit_messages=commit_messages)
             }]
         )
-        return response.choices[0].message.content.strip() if response.choices else None
+        if response.choices:
+            return response.choices[0].message.content.strip()
+        else:
+            print("OpenAI API returned an empty response.")
+            return None
+    except openai.RateLimitError:
+        print("OpenAI API request exceeded rate limit.")
+        return None
+    except openai.AuthenticationError:
+        print("OpenAI API authentication failed. Please check your API key.")
+        return None
     except openai.APIError as e:
         print(f"OpenAI API Error: {str(e)}")
         return None
@@ -102,17 +112,24 @@ def fetch_commits_from_remote_repo(repo_url, start_date, end_date, clone_dir=Non
     Returns:
         list: A list of commit objects within the specified date range.
     """
-    if clone_dir is None:
-        temp_dir = tempfile.gettempdir()
-        repo_name = os.path.basename(repo_url).replace(".git", "")
-        repo_dir = os.path.join(temp_dir, repo_name)
-        commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
-    else:
-        repo_dir = os.path.join(clone_dir, os.path.basename(repo_url).replace(".git", ""))
-        commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
+    try:
+        if clone_dir is None:
+            temp_dir = tempfile.gettempdir()
+            repo_name = os.path.basename(repo_url).replace(".git", "")
+            repo_dir = os.path.join(temp_dir, repo_name)
+            commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
+        else:
+            repo_dir = os.path.join(clone_dir, os.path.basename(repo_url).replace(".git", ""))
+            commits = get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author)
 
-    print(f"Fetched {len(commits)} commits from {repo_url}")
-    return commits
+        print(f"Fetched {len(commits)} commits from {repo_url}")
+        return commits
+    except GitCommandError as e:
+        print(f"Error cloning repository: {str(e)}")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return []
 
 
 def get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branch, author):
@@ -130,16 +147,28 @@ def get_commits_from_cloned_repo(repo_dir, repo_url, start_date, end_date, branc
     Returns:
         list: A list of commit objects within the specified date range.
     """
-    if os.path.exists(repo_dir):
-        print(f"Repository already exists at {repo_dir}. Fetching commits...")
-        repo = Repo(repo_dir)
-        repo.git.fetch(all=True)  # Fetch all branches and tags
-    else:
-        print(f"Cloning {repo_url} to {repo_dir}")
-        repo = Repo.clone_from(repo_url, repo_dir, no_checkout=True)
-        repo.git.fetch(all=True)  # Fetch all branches and tags
-    commits = fetch_commits_from_repo(repo, start_date, end_date, branch, author)
-    return commits
+    try:
+        if os.path.exists(repo_dir):
+            print(f"Repository already exists at {repo_dir}. Fetching commits...")
+            repo = Repo(repo_dir)
+            repo.git.fetch(all=True)  # Fetch all branches and tags
+        else:
+            print(f"Cloning {repo_url} to {repo_dir}")
+            repo = Repo.clone_from(repo_url, repo_dir, no_checkout=True, depth=1)  # Clone with minimal history
+            repo.git.fetch(all=True)  # Fetch all branches and tags
+
+        if branch and branch not in repo.heads:
+            print(f"Branch '{branch}' not found in the repository.")
+            return []
+
+        commits = fetch_commits_from_repo(repo, start_date, end_date, branch, author)
+        return commits
+    except GitCommandError as e:
+        print(f"Error fetching commits: {str(e)}")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return []
 
 
 def fetch_commits_from_repo(repo, start_date, end_date, branch=None, author=None):
@@ -179,7 +208,11 @@ def fetch_commits_from_local_repo(repo_path, start_date, end_date, branch=None, 
     Returns:
         list: A list of commit objects within the specified date range.
     """
-    repo = Repo(repo_path)
+    try:
+        repo = Repo(repo_path)
+    except InvalidGitRepositoryError:
+        print(f"Error: '{repo_path}' is not a valid Git repository.")
+        return []
     return fetch_commits_from_repo(repo, start_date, end_date, branch, author)
 
 
@@ -216,6 +249,10 @@ def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, mod
     else:
         commits = fetch_commits_from_local_repo(repo_path, start_date, end_date, branch, author)
         repo = Repo(repo_path)
+
+    if not commits:
+        print("No commits found within the specified date range.")
+        return
 
     if verbose:
         print(f"Commit summary from {start_date} to {end_date}:")
@@ -265,9 +302,12 @@ def generate_commit_summary(repo_path, start_date, end_date, openai_api_key, mod
                     output.append("-" * 50)
 
     if output_file:
-        with open(output_file, "w") as file:
-            file.write("\n".join(output))
-        print(f"Summary saved to {output_file}")
+        try:
+            with open(output_file, "w") as file:
+                file.write("\n".join(output))
+            print(f"Summary saved to {output_file}")
+        except IOError as e:
+            print(f"Error writing to output file: {str(e)}")
     else:
         print("\n".join(output))
 
@@ -322,6 +362,30 @@ def create_config_file(config_path):
         print(f"Configuration file already exists: {config_path}")
 
 
+def set_config_value(config_path, section, key, value):
+    """
+    Set a value in the configuration file.
+
+    Args:
+        config_path (pathlib.Path): The path to the configuration file.
+        section (str): The section in the configuration file.
+        key (str): The key in the configuration section.
+        value (str): The value to set for the key.
+    """
+    config = configparser.ConfigParser()
+    config.read(config_path)
+
+    if section not in config:
+        config.add_section(section)
+
+    config.set(section, key, value)
+
+    with open(config_path, "w") as file:
+        config.write(file)
+
+    print(f"Updated configuration: [{section}] {key} = {value}")
+
+
 def main():
     """
     The main entry point of the program.
@@ -330,7 +394,7 @@ def main():
     week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
     parser = argparse.ArgumentParser(description="RiddleSolver - A Git Commit(Riddles) Summarizer!")
-    parser.add_argument("repo", help="Repository path, URL, or 'owner/repo' for GitHub repositories")
+    parser.add_argument("repo", nargs="?", help="Repository path, URL, or 'owner/repo' for GitHub repositories")
     parser.add_argument("-s", "--start-date", default=week_ago, help="Start date (YYYY-MM-DD)")
     parser.add_argument("-e", "--end-date", default=now, help="End date (YYYY-MM-DD)")
     parser.add_argument("-c", "--config", default=None, help="Path to the configuration file")
@@ -341,14 +405,25 @@ def main():
     parser.add_argument("-w", "--weeks", type=int,
                         help="Number of weeks to include in the summary (e.g., -w 1 for the last week)")
     parser.add_argument("-m", "--months", type=int,
-                        help="Number of months to include in the summary (e.g., -m 3 for thelast 3 months)")
+                        help="Number of months to include in the summary (e.g., -m 3 for the last 3 months)")
     parser.add_argument("-b", "--branch", default=None, help="Branch name to analyze commits from")
     parser.add_argument("-a", "--author", default=None, help="Author's email or name to filter commits by")
     parser.add_argument("-o", "--output", default=None, help="Path to save the summary as a markdown file")
+    parser.add_argument("command", nargs="?", choices=["config"],
+                        help="Subcommand to execute (e.g., 'config' to set configuration values)")
+    parser.add_argument("args", nargs=argparse.REMAINDER, help="Arguments for the subcommand")
     args = parser.parse_args()
 
     config_path = get_config_path(args.config)
     create_config_file(config_path)
+
+    if args.command == "config":
+        if len(args.args) == 3:
+            section, key, value = args.args
+            set_config_value(config_path, section, key, value)
+        else:
+            print("Usage: riddlesolver config <section> <key> <value>")
+        return
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -358,21 +433,34 @@ def main():
     verbose = args.verbose or config.getboolean("general", "verbose", fallback=False)
     batch_size = config.getint("general", "batch_size", fallback=50)
 
+    if args.repo is None:
+        parser.error("Repository path or URL is required.")
     if args.days:
+        if args.days <= 0:
+            parser.error("Number of days must be a positive integer.")
         start_date = datetime.now() - timedelta(days=args.days)
         end_date = datetime.now()
     elif args.weeks:
+        if args.weeks <= 0:
+            parser.error("Number of weeks must be a positive integer.")
         start_date = datetime.now() - timedelta(weeks=args.weeks)
         end_date = datetime.now()
     elif args.months:
+        if args.months <= 0:
+            parser.error("Number of months must be a positive integer.")
         start_date = datetime.now() - timedelta(days=args.months * 30)  # Approximate month as 30 days
         end_date = datetime.now()
     else:
         start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
 
-    generate_commit_summary(args.repo, start_date, end_date, openai_api_key, model, base_url, verbose, batch_size,
-                            args.silent, args.branch, args.author, args.output)
+    try:
+        generate_commit_summary(args.repo, start_date, end_date, openai_api_key, model, base_url, verbose, batch_size,
+                                args.silent, args.branch, args.author, args.output)
+    except configparser.Error as e:
+        print(f"Error in configuration file: {str(e)}")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
 
 if __name__ == "__main__":

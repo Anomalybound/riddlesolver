@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "riddlesolver"
-version = "0.1.5"
+version = "0.1.6
 description = "A command-line tool to summarize Git commits using OpenAI ChatGPT"
 authors = [{ name = "Siyuan Wu", email = "cushmily@gmail.com" }]
 readme = "README.md"
