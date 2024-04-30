@@ -1,12 +1,13 @@
 import os
 import shutil
-
-import requests
-from git import Repo
+import time
 from datetime import datetime, timedelta
 
+from git import Repo
+
 from riddlesolver.config import get_config_value
-from riddlesolver.utils import extract_owner_repo, remove_duplicated_commits
+from riddlesolver.utils import extract_owner_repo, remove_duplicated_commits, get_base_branch_map, \
+    get_all_unique_commits
 
 
 def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None):
@@ -58,37 +59,25 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
     """
 
     results = []
-    list_branches_url = f"https://api.github.com/repos/{repo_path}/branches"
-    list_commits_url = f"https://api.github.com/repos/{repo_path}/commits"
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {access_token}",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
 
-    commit_params = {
-        "since": start_date.isoformat(),
-        "until": end_date.isoformat(),
-    }
-    if author:
-        commit_params["author"] = author
+    start_time = time.time()
+    base_branch_map, caches = get_base_branch_map(repo_path=repo_path, start_date=start_date, end_date=end_date,
+                                                  access_token=access_token, author=author)
+    print(f"Time taken to get base branch map: {time.time() - start_time}")
 
-    response = requests.get(list_branches_url, headers=headers)
-    response.raise_for_status()
+    start_time = time.time()
+    unique_commits = get_all_unique_commits(repo_path=repo_path, base_branch_map=base_branch_map, commits_caches=caches,
+                                            start_date=start_date, end_date=end_date, access_token=access_token,
+                                            author=author)
+    print(f"Time taken to get all unique commits: {time.time() - start_time}")
 
-    branches = response.json()
+    for unique_commit_pair in unique_commits.items():
+        branch_name = unique_commit_pair[0]
+        commits = unique_commit_pair[1]
 
-    for fetched_branch in branches:
-        branch_name = fetched_branch["name"]
         # If branch is specified, filter by branch name
         if branch and branch_name != branch:
             continue
-
-        commit_params.update({"sha": branch_name})
-        response = requests.get(list_commits_url, headers=headers, params=commit_params)
-        response.raise_for_status()
-
-        commits = response.json()
 
         # group commits by author
         commits_by_author = {}
@@ -116,7 +105,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
                 "commit_messages": messages
             })
 
-    results = remove_duplicated_commits(results)
+    # results = remove_duplicated_commits(results)
 
     return results
 
@@ -186,7 +175,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
     return results
 
 
-def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, author=None, config=None):
+def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, author=None):
     """
     Fetches commits from a remote repository.
 
@@ -196,19 +185,16 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
         end_date (datetime): The end date of the date range.
         branch (str): The branch name.
         author (str): The author name or email.
-        config (dict): The configuration dictionary.
 
     Returns:
         list: stores the branch, author, datetime ranges and the commits
     """
-    if config is None:
-        config = {}
 
-    cache_dir = get_config_value(config, "general", "cache_dir")
+    cache_dir = get_config_value("general", "cache_dir")
     if cache_dir is None:
         cache_dir = os.path.expanduser("~/.cache/repo_cache")
 
-    cache_duration = get_config_value(config, "general", "cache_duration")
+    cache_duration = get_config_value("general", "cache_duration")
     if cache_duration is None:
         cache_duration = 7  # Default cache duration of 7 days
     else:

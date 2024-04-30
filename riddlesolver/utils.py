@@ -1,6 +1,7 @@
 import re
-
 from datetime import datetime
+
+import requests
 from dateutil.parser import parse
 
 from constants import DATE_FORMAT
@@ -155,3 +156,133 @@ def remove_duplicated_commits(commits):
     # remove commit objects with no commit messages
     commits = [commit_object for commit_object in commits if commit_object['commit_messages']]
     return commits
+
+
+def get_base_branch_map(repo_path, start_date, end_date, access_token, author=None):
+    """
+    Get the base branch for each branch in a GitHub repository.
+    Args:
+        repo_path: owner/repo format
+        start_date: The start date of the date range.
+        end_date: The end date of the date range.
+        access_token: GitHub access token
+        author: The author name or email.
+
+    Returns:
+        dict: A dictionary mapping each branch to its base branch.
+        dict: A dictionary mapping each branch to its commits, for caching.
+    """
+    # Set the base URL for the GitHub API
+    base_url = f'https://api.github.com/repos/{repo_path}'
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+    commit_params = {
+        "since": start_date.isoformat(),
+        "until": end_date.isoformat(),
+    }
+
+    if author:
+        commit_params["author"] = author
+
+    # Fetch the list of branches in the repository
+    branches_url = f'{base_url}/branches'
+    branches_response = requests.get(branches_url, headers=headers)
+    branches = [branch['name'] for branch in branches_response.json()]
+
+    base_branch_map = {}
+    branch_commits_caches = {}
+
+    for branch in branches:
+        # Fetch the list of commits for the current branch
+        branch_url = f'{base_url}/commits?sha={branch}'
+        branch_response = requests.get(branch_url, headers=headers, params=commit_params)
+        branch_commits = branch_response.json()
+        branch_commit_hashes = [commit['sha'] for commit in branch_commits]
+        branch_commits_caches[branch] = branch_commits
+
+        # Find the base branch for the current branch
+        base_branch = None
+        base_branch_commits = []
+        for other_branch in branches:
+            if other_branch != branch:
+                other_branch_url = f'{base_url}/commits?sha={other_branch}'
+                if other_branch in branch_commits_caches:
+                    other_branch_commits = branch_commits_caches[other_branch]
+                else:
+                    other_branch_response = requests.get(other_branch_url, headers=headers, params=commit_params)
+                    other_branch_commits = other_branch_response.json()
+                other_branch_commit_hashes = [commit['sha'] for commit in other_branch_commits]
+                common_commits = set(branch_commit_hashes) & set(other_branch_commit_hashes)
+                if len(common_commits) > len(base_branch_commits):
+                    base_branch = other_branch
+                    base_branch_commits = other_branch_commits
+
+        base_branch_map[branch] = base_branch
+
+    return base_branch_map, branch_commits_caches
+
+
+def get_all_unique_commits(repo_path, base_branch_map, commits_caches, start_date, end_date, access_token, author=None):
+    """
+    Get the unique commits for each branch in a GitHub repository.
+    Args:
+        repo_path: owner/repo format
+        base_branch_map: A dictionary mapping each branch to its base branch.
+        commits_caches: A dictionary mapping each branch to its commits, for caching. Could be empty.
+        start_date: The start date of the date range.
+        end_date: The end date of the date range.
+        access_token: GitHub access token
+        author: The author name or email.
+
+    Returns:
+        dict: A dictionary mapping each branch to its unique commits.
+    """
+    # Set the base URL for the GitHub API
+    base_url = f'https://api.github.com/repos/{repo_path}'
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+    commit_params = {
+        "since": start_date.isoformat(),
+        "until": end_date.isoformat(),
+    }
+
+    if author:
+        commit_params["author"] = author
+
+    unique_commits_map = {}
+
+    for branch, base_branch in base_branch_map.items():
+        # Fetch the list of commits for the current branch
+        if branch in commits_caches:
+            branch_commits = commits_caches[branch]
+        else:
+            query_url = f'{base_url}/commits?sha={branch}'
+            branch_response = requests.get(query_url, headers=headers, params=commit_params)
+            branch_commits = branch_response.json()
+
+        if not base_branch:
+            unique_commits_map[branch] = branch_commits
+            continue
+
+        # Fetch the list of commits for the base branch
+        if base_branch in commits_caches:
+            base_branch_commits = commits_caches[base_branch]
+        else:
+            query_url = f'{base_url}/commits?sha={base_branch}'
+            base_branch_response = requests.get(query_url, headers=headers, params=commit_params)
+            base_branch_commits = base_branch_response.json()
+
+        # Find the unique commits on the current branch
+        unique_commits = [commit for commit in branch_commits if commit not in base_branch_commits]
+
+        unique_commits_map[branch] = unique_commits
+
+    return unique_commits_map

@@ -1,7 +1,7 @@
 import argparse
 from datetime import datetime, timedelta
 
-from config import load_config_from_file, save_config_to_file, get_config_value, set_config_value
+from config import load_config_from_file, save_config_to_file, get_config_value, set_config_value, grant_github_auth
 from constants import DEFAULT_SETTINGS
 from repository import fetch_commits
 from summary import generate_commit_summary
@@ -15,12 +15,18 @@ def main():
     if args.command == "config":
         if len(args.config_args) == 3:
             section, key, value = args.config_args
-            set_config_value(config, section, key, value)
+            set_config_value(section, key, value)
             save_config_to_file(config)
             print(f"Configuration updated: [{section}] {key} = {value}")
         else:
             print("Invalid number of arguments for 'config' command.")
-            print("Usage: python app.py config <section> <key> <value>")
+            print("Usage: riddlesolver -c config <section> <key> <value>")
+        return
+
+    if args.command == "grant-auth":
+        grant_github_auth()
+        save_config_to_file(config)
+        print("GitHub authentication granted.")
         return
 
     repo_path = args.repo
@@ -32,7 +38,7 @@ def main():
     try:
         validate_arguments(repo_path, start_date, end_date)
         repo_type = get_repository_type(repo_path)
-        access_token = get_config_value(config, repo_type, "access_token")
+        access_token = get_config_value(repo_type, "access_token")
         batched_commits = fetch_commits(repo_path, start_date, end_date, branch, author, access_token, repo_type)
         branch = f" on branch '{branch}'" if branch else ""
         author = f" by '{author}'" if author else ""
@@ -55,7 +61,7 @@ def parse_arguments():
     parser.add_argument("-b", "--branch", help="Branch name")
     parser.add_argument("-a", "--author", help="Author name or email")
     parser.add_argument("-o", "--output", help="Output file path")
-    parser.add_argument("command", nargs="?", choices=["config"], help="Command to execute")
+    parser.add_argument("-c", "--command", choices=["config", "grant-auth"], help="Command to execute")
     parser.add_argument("config_args", nargs="*", help="Arguments for the 'config' command")
     return parser.parse_args()
 
