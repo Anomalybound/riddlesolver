@@ -3,8 +3,7 @@ from collections import defaultdict
 import openai
 
 from riddlesolver.constants import SUMMARY_PROMPT_TEMPLATE
-from utils import format_date, handle_error
-from dateutil.parser import parse
+from utils import format_date, handle_error, calculate_days_between_dates
 
 
 def generate_commit_summary(batched_commits, config, output_file=None):
@@ -71,7 +70,7 @@ def generate_summary(commit_batches, config):
         end_date = commit_object['end_date']
         commit_messages = commit_object['commit_messages']
         commit_messages = [message['messages'] for message in commit_messages]
-        duration = max(1, (parse(end_date) - parse(start_date)).days)
+        duration = max(1, calculate_days_between_dates(start_date, end_date))
         openai_summary = get_openai_summary(commit_messages, branch_name, config)
         if openai_summary:
             batch_summary = [

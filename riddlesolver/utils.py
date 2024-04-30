@@ -20,6 +20,24 @@ def parse_date(date_string):
     return datetime.strptime(date_string, DATE_FORMAT)
 
 
+def calculate_days_between_dates(start_date, end_date):
+    """
+    Calculates the number of days between two dates.
+
+    Args:
+        start_date (datetime): The start date.
+        end_date (datetime): The end date.
+
+    Returns:
+        int: The number of days between the two dates.
+    """
+    if isinstance(start_date, str):
+        start_date = parse(start_date)
+    if isinstance(end_date, str):
+        end_date = parse(end_date)
+    return (end_date - start_date).days
+
+
 def format_date(date):
     """
     Formats a datetime object into a string representation.
@@ -284,5 +302,91 @@ def get_all_unique_commits(repo_path, base_branch_map, commits_caches, start_dat
         unique_commits = [commit for commit in branch_commits if commit not in base_branch_commits]
 
         unique_commits_map[branch] = unique_commits
+
+    return unique_commits_map
+
+
+def get_base_branch_map_local(repo, start_date, end_date, author=None):
+    """
+    Get the base branch for each branch in a local repository.
+    Args:
+        repo: The local repository object.
+        start_date: The start date of the date range.
+        end_date: The end date of the date range.
+        author: The author name or email.
+
+    Returns:
+        dict: A dictionary mapping each branch to its base branch.
+    """
+    base_branch_map = {}
+
+    # Fetch remote branches
+    repo.remotes.origin.fetch()
+
+    for ref in repo.remotes.origin.refs:
+        branch = ref.name.split('/')[-1]
+        branch_commits = list(repo.iter_commits(ref, author=author))
+        branch_commits = [commit for commit in branch_commits if
+                          start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+
+        base_branch = None
+        base_branch_commits = []
+        for other_ref in repo.remotes.origin.refs:
+            other_branch = other_ref.name.split('/')[-1]
+            if other_branch != branch:
+                other_branch_commits = list(repo.iter_commits(other_ref, author=author))
+                other_branch_commits = [commit for commit in other_branch_commits if
+                                        start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+                common_commits = set(branch_commits) & set(other_branch_commits)
+                if len(common_commits) > len(base_branch_commits):
+                    base_branch = other_branch
+                    base_branch_commits = other_branch_commits
+
+        base_branch_map[branch] = base_branch
+
+    return base_branch_map
+
+
+def get_all_unique_commits_local(repo, base_branch_map, start_date, end_date, author=None):
+    """
+    Get the unique commits for each branch in a local repository.
+    Args:
+        repo: The local repository object.
+        base_branch_map: A dictionary mapping each branch to its base branch.
+        start_date: The start date of the date range.
+        end_date: The end date of the date range.
+        author: The author name or email.
+
+    Returns:
+        dict: A dictionary mapping each branch to its unique commits.
+    """
+    unique_commits_map = {}
+
+    # Fetch remote branches
+    repo.remotes.origin.fetch()
+
+    for branch, base_branch in base_branch_map.items():
+        # ignore HEAD branch
+        if branch == 'HEAD':
+            continue
+
+        for branch_ref in repo.remotes.origin.refs:
+            if branch_ref.name.split('/')[-1] == branch:
+                branch_commits = list(repo.iter_commits(branch_ref, author=author))
+                branch_commits = [commit for commit in branch_commits if
+                                  start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+
+                if not base_branch or base_branch not in repo.remotes.origin.refs:
+                    unique_commits_map[branch] = branch_commits
+                    continue
+
+                base_branch_ref = repo.remotes.origin.refs[base_branch]
+                base_branch_commits = list(repo.iter_commits(base_branch_ref, author=author))
+                base_branch_commits = [commit for commit in base_branch_commits if
+                                       start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+
+                unique_commits = [commit for commit in branch_commits if commit not in base_branch_commits]
+
+                unique_commits_map[branch] = unique_commits
 
     return unique_commits_map

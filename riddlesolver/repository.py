@@ -3,11 +3,13 @@ import shutil
 import time
 from datetime import datetime, timedelta
 
-from git import Repo
+from git import Repo, InvalidGitRepositoryError
 
 from riddlesolver.config import get_config_value
-from riddlesolver.utils import extract_owner_repo, remove_duplicated_commits, get_base_branch_map, \
-    get_all_unique_commits
+from riddlesolver.utils import (
+    extract_owner_repo, get_base_branch_map, get_all_unique_commits,
+    get_base_branch_map_local, get_all_unique_commits_local
+)
 
 
 def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None):
@@ -60,16 +62,12 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
 
     results = []
 
-    start_time = time.time()
+    print(f'Collecting unique commits from {repo_path}...')
     base_branch_map, caches = get_base_branch_map(repo_path=repo_path, start_date=start_date, end_date=end_date,
                                                   access_token=access_token, author=author)
-    print(f"Time taken to get base branch map: {time.time() - start_time}")
-
-    start_time = time.time()
     unique_commits = get_all_unique_commits(repo_path=repo_path, base_branch_map=base_branch_map, commits_caches=caches,
                                             start_date=start_date, end_date=end_date, access_token=access_token,
                                             author=author)
-    print(f"Time taken to get all unique commits: {time.time() - start_time}")
 
     for unique_commit_pair in unique_commits.items():
         branch_name = unique_commit_pair[0]
@@ -105,8 +103,6 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
                 "commit_messages": messages
             })
 
-    # results = remove_duplicated_commits(results)
-
     return results
 
 
@@ -124,55 +120,47 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
     Returns:
         list: stores the branch, author, datetime ranges and the commits
     """
-    repo = Repo(repo_path)
-    results = []
+    try:
+        repo = Repo(repo_path)
+        results = []
 
-    for local_branch in repo.branches:
-        branch_name = local_branch.name
+        # Get the base branch map and unique commits for local repository
+        base_branch_map = get_base_branch_map_local(repo, start_date, end_date, author)
+        unique_commits = get_all_unique_commits_local(repo, base_branch_map, start_date, end_date, author)
 
-        # If branch is specified, filter by branch name
-        if branch is not None and branch_name != branch:
-            continue
-
-        # Iterate over commits in the branch
-        commits = repo.iter_commits(branch_name)
-
-        # filter commits by date and author
-        filtered_commits = []
-        for commit in commits:
-            commit_date = datetime.fromtimestamp(commit.committed_date)
-            if start_date <= commit_date <= end_date:
-                if author is None or commit.author.email == author or commit.author.name == author:
-                    filtered_commits.append(commit)
-
-        # group commits by author
-        commits_by_author = {}
-        for commit in filtered_commits:
-            author = commit.author.name
-            if author not in commits_by_author:
-                commits_by_author[author] = []
-            commits_by_author[author].append(commit)
-
-        for author, commits in commits_by_author.items():
-            if len(commits) < 0:
+        for branch_name, commits in unique_commits.items():
+            # If branch is specified, filter by branch name
+            if branch is not None and branch_name != branch:
                 continue
 
-            end_date = commits[0].committed_datetime
-            start_date = commits[-1].committed_datetime
-            messages = [{"messages": commit.message, "sha": commit.hexsha} for commit in commits]
+            # group commits by author
+            commits_by_author = {}
+            for commit in commits:
+                author = commit.author.name
+                if author not in commits_by_author:
+                    commits_by_author[author] = []
+                commits_by_author[author].append(commit)
 
-            # unified results
-            results.append({
-                "branch": branch_name,
-                "author": author,
-                "start_date": start_date,
-                "end_date": end_date,
-                "commit_messages": messages
-            })
+            for author, commits in commits_by_author.items():
+                if len(commits) < 0:
+                    continue
 
-    results = remove_duplicated_commits(results)
+                end_date = commits[0].committed_datetime
+                start_date = commits[-1].committed_datetime
+                messages = [{"messages": commit.message, "sha": commit.hexsha} for commit in commits]
 
-    return results
+                # unified results
+                results.append({
+                    "branch": branch_name,
+                    "author": author,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "commit_messages": messages
+                })
+
+        return results
+    except InvalidGitRepositoryError:
+        raise ValueError(f"Invalid Git repository: {repo_path}")
 
 
 def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, author=None):
