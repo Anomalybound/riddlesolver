@@ -110,3 +110,48 @@ def extract_owner_repo(github_link):
 
     # If no match found, return None
     return None
+
+
+def remove_duplicated_commits(commits):
+    """
+    Removes duplicated commits from the list of commits.
+
+    Args:
+        commits (list): The list of commits.
+
+    Returns:
+        list: The list of unique commits.
+    """
+
+    unique_commits = []
+    # Sort by author, and move 'main' branch to the beginning
+    commits = sorted(
+        commits,
+        key=lambda x: (x['author'], x['branch'] != 'main'),
+    )
+
+    # if there is a main branch in the list, move it to the front
+    # TODO: hardcoded 'main' branch name for now, actually we need a way to find out which branch is the earliest
+    # branch in the list, and we order the branches by the created date
+    main_branch = 'main'
+    for commit in commits:
+        if commit['branch'] == main_branch:
+            commits.remove(commit)
+            commits.insert(0, commit)
+            break
+
+    for commit_object in commits:
+        messages = commit_object['commit_messages']
+        for message in messages:
+            sha = message['sha']
+            if sha not in unique_commits:
+                unique_commits.append(sha)
+            else:
+                message['removed'] = True
+
+        messages = [message for message in messages if not message.get('removed')]
+        commit_object['commit_messages'] = messages
+
+    # remove commit objects with no commit messages
+    commits = [commit_object for commit_object in commits if commit_object['commit_messages']]
+    return commits

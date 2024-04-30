@@ -6,7 +6,7 @@ from git import Repo
 from datetime import datetime, timedelta
 
 from riddlesolver.config import get_config_value
-from riddlesolver.utils import extract_owner_repo
+from riddlesolver.utils import extract_owner_repo, remove_duplicated_commits
 
 
 def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None):
@@ -105,7 +105,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
 
             end_date = commits[0]["commit"]["author"]["date"]
             start_date = commits[-1]["commit"]["author"]["date"]
-            messages = [commit["commit"]["message"] for commit in commits]
+            messages = [{"messages": commit["commit"]["message"], "sha": commit["sha"]} for commit in commits]
 
             # unified results
             results.append({
@@ -115,6 +115,8 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
                 "end_date": end_date,
                 "commit_messages": messages
             })
+
+    results = remove_duplicated_commits(results)
 
     return results
 
@@ -168,7 +170,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
 
             end_date = commits[0].committed_datetime
             start_date = commits[-1].committed_datetime
-            messages = [commit.message for commit in commits]
+            messages = [{"messages": commit.message, "sha": commit.hexsha} for commit in commits]
 
             # unified results
             results.append({
@@ -178,6 +180,8 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
                 "end_date": end_date,
                 "commit_messages": messages
             })
+
+    results = remove_duplicated_commits(results)
 
     return results
 

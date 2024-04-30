@@ -70,6 +70,7 @@ def generate_summary(commit_batches, config):
         start_date = commit_object['start_date']
         end_date = commit_object['end_date']
         commit_messages = commit_object['commit_messages']
+        commit_messages = [message['messages'] for message in commit_messages]
         duration = max(1, (parse(end_date) - parse(start_date)).days)
         openai_summary = get_openai_summary(commit_messages, branch_name, config)
         if openai_summary:
