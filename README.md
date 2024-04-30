@@ -1,5 +1,12 @@
 # RiddleSolver 🎩🔍
 
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.1.7-blue.svg)](https://github.com/AnomalyBound/riddlesolver)
+[![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver/commits)
+
+[![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver)
+[![Downloads](https://img.shields.io/pypi/dm/riddlesolver)](https://pypi.org/project/riddlesolver/)
+
 Ladies and gentlemen, boys and girls, gather around for the most extraordinary, mind-bending, and side-splitting Git commit summarizer you've ever witnessed! 🤯🎪 Introducing... RiddleSolver! 🎭
 
 RiddleSolver is like a magical genie 🧞‍ that grants your wish to understand the cryptic riddles known as Git commits. With a wave of its virtual wand 🪄, RiddleSolver conjures up clear, concise, and standardized summaries of your Git commit messages, leaving you in awe and amazement! 🎆
