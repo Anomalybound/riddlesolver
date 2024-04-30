@@ -9,7 +9,7 @@ import requests
 CONFIG_FILE = Path.joinpath(Path.home(), ".riddlesolver")
 DEFAULT_CONFIG = {
     "openai": {
-        "api_key": "",
+        "api_key": "insert_your_api_key_here",
         "model": "gpt-3.5-turbo",
         "base_url": "https://api.openai.com/v1"
     },

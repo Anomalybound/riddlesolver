@@ -12,11 +12,12 @@ RiddleSolver is like a magical genie 🧞‍ that grants your wish to understand
 - 🔍 Categorizes changes using the enchanting gitmoji conventions (because even genies love emojis!)
 - 💡 Provides mind-blowing insights and observations about the commits (prepare to be enlightened!)
 - 🎛️ Allows you to summon the genie with configurable OpenAI API settings
-- 🤫 Offers a silent mode for those times when you need to keep the genie's secrets
 - 🌳 Lets you specify a branch to focus the genie's powers on
 - 🧙‍️ Enables you to summon commits by a specific author (because even genies play favorites!)
 - 📝 Grants you the ability to capture the genie's wisdom in a markdown file (for posterity, of course!)
 - 🔧 Bestows upon you the power to set configuration values using the mystical `config` subcommand
+- 🔑 Allows you to grant GitHub authentication using the magical `grant-auth` command
+- 🎯 Fetches only the unique commits dedicated to a certain branch, eliminating the issue of overlapping summarization
 
 ## 🧪 Installation
 
@@ -44,28 +45,32 @@ Replace `<repo>` with the path to your local repository, the URL of a remote rep
 
 - `-s`, `--start-date`: Specify the start date of the commit range (YYYY-MM-DD)
 - `-e`, `--end-date`: Specify the end date of the commit range (YYYY-MM-DD)
-- `-c`, `--config`: Provide the path to a custom configuration file
-- `--silent`: Run RiddleSolver in silent mode (shhh, the genie is working!)
-- `-v`, `--verbose`: Enable verbose mode for extra insights and behind-the-scenes magic
 - `-d`, `--days`: Specify the number of days to include in the summary (e.g., `-d 2` for the last 2 days)
 - `-w`, `--weeks`: Specify the number of weeks to include in the summary (e.g., `-w 1` for the last week)
 - `-m`, `--months`: Specify the number of months to include in the summary (e.g., `-m 3` for the last 3 months)
 - `-b`, `--branch`: Specify the branch name to focus the genie's powers on
 - `-a`, `--author`: Specify the author's email or name to filter commits by
 - `-o`, `--output`: Specify the path to save the genie's wisdom as a markdown file
+- `-c`, `--command`: Execute a command (`config` or `grant-auth`)
+
+⚠️ **IMPORTANT**: When using RiddleSolver with GitHub remote repositories, you must ensure that you have a valid access token:
+
+- You can either use the `grant-auth` command to grant the necessary permissions 
+- Or you can manually configure the access token in the configuration file (with 'content read' permission). 
+> Please note that manually configured access tokens may be subject to rate limits imposed by GitHub. It is recommended to use the `grant-auth` command for a more seamless experience.
 
 ### Configuring the Genie
 
 To customize the genie's behavior and grant it access to the OpenAI API, use the mystical `config` subcommand:
 
 ```bash
-riddlesolver config set <section> <key> <value>
+riddlesolver config <section> <key> <value>
 ```
 
 For example, to set the OpenAI API key:
 
 ```bash
-riddlesolver config set openai api_key YOUR_API_KEY
+riddlesolver config openai api_key YOUR_API_KEY
 ```
 
 The genie will store its secrets in the sacred scroll located at `~/.riddlesolver/config.ini`.
@@ -82,12 +87,6 @@ Summon the genie to decipher the commits of a remote repository within a specifi
 
 ```bash
 riddlesolver https://github.com/owner/repo -s 2023-01-01 -e 2023-01-31
-```
-
-Summon the genie to reveal the secrets of the last 2 weeks in silent mode:
-
-```bash
-riddlesolver owner/repo -w 2 --silent
 ```
 
 Summon the genie to uncover the riddles of a specific branch:
@@ -108,7 +107,11 @@ Summon the genie to capture its wisdom in a markdown file:
 riddlesolver /path/to/local/repo -o summary.md
 ```
 
-Here's the updated Development Toolkit section with the necessary changes to support the API functions:
+Grant GitHub authentication to the genie:
+
+```bash
+riddlesolver --command grant-auth
+```
 
 **🛠️ Development Toolkit**
 ---------------------------
@@ -150,24 +153,28 @@ save_summary_to_file(summary, output_file)
 
 ## 🔧 Configuration
 
-The genie's secrets are stored in the sacred scroll located at `~/.riddlesolver/config.ini`. Here's a glimpse of what it contains:
+The genie's secrets are stored in the sacred scroll located at `~/.riddlesolver`. Here's a glimpse of what it contains:
 
 ```ini
 [openai]
-api_key = YOUR_API_KEY
+api_key = INPUT YOUR API KEY
 model = gpt-3.5-turbo
 base_url = https://api.openai.com/v1
 
 [general]
-verbose = False
-batch_size = 50
+cache_dir = ~/.cache/repo_cache
+cache_duration = 7
+
+[github]
+access_token = 
 ```
 
-- `api_key`: Replace `YOUR_API_KEY` with your OpenAI API key (the genie needs it to work its magic!)
+- `api_key`: Replace `INPUT YOUR API KEY` with your OpenAI API key (the genie needs it to work its magic!)
 - `model`: Specify the OpenAI model for the genie to use (default: `gpt-3.5-turbo`)
 - `base_url`: Specify the base URL for the OpenAI API (default: `https://api.openai.com/v1`)
-- `verbose`: Set to `True` to enable verbose mode and witness the genie's behind-the-scenes magic
-- `batch_size`: Specify the number of riddles the genie should process in each batch (default: `50`)
+- `cache_dir`: Specify the directory where the genie stores its cached repositories (default: `~/.cache/repo_cache`)
+- `cache_duration`: Specify the number of days the genie should keep the cached repositories (default: `7`)
+- `access_token`: Provide your GitHub access token to grant the genie access to your repositories (leave empty if not required)
 
 ## 🤝 Contributing
 
@@ -183,6 +190,6 @@ The genie would like to express its gratitude to the mighty OpenAI for granting 
 
 ## 🚀 Version
 
-RiddleSolver is currently at version 0.1.6, ready to unravel the mysteries of your Git commits like never before!
+RiddleSolver is currently at version 0.1.7, ready to unravel the mysteries of your Git commits like never before!
 
 Now, prepare to be amazed as RiddleSolver unravels the mysteries of your Git commits and brings clarity to your development journey! 🎉✨
