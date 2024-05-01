@@ -1,12 +1,11 @@
 import os
 import shutil
-import time
 from datetime import datetime, timedelta
 
 from git import Repo, InvalidGitRepositoryError
 
-from riddlesolver.config import get_config_value
-from riddlesolver.utils import (
+from config import get_config_value
+from utils import (
     extract_owner_repo, get_base_branch_map, get_all_unique_commits,
     get_base_branch_map_local, get_all_unique_commits_local
 )

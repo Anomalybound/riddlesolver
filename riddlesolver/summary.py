@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import openai
 
-from riddlesolver.constants import SUMMARY_PROMPT_TEMPLATE
+from constants import SUMMARY_PROMPT_TEMPLATE
 from utils import format_date, handle_error, calculate_days_between_dates
 
 

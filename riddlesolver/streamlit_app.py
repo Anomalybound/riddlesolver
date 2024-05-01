@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 
 import streamlit as st
 
-from riddlesolver.repository import fetch_commits
-from riddlesolver.summary import generate_commit_summary
-from riddlesolver.utils import get_repository_type
+from repository import fetch_commits
+from summary import generate_commit_summary
+from utils import get_repository_type
 
 # Load the configuration
 config = configparser.ConfigParser()
