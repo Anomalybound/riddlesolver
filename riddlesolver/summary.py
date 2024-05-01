@@ -28,6 +28,7 @@ def generate_commit_summary(batched_commits, config, output_file=None):
 
     print("=" * 50)
     print("Summary generation complete.")
+    return summary
 
 
 def group_commits_by_author_and_branch(commits, branch_names):
@@ -63,7 +64,7 @@ def generate_summary(commit_batches, config):
     """
 
     summary = []
-    for commit_object in commit_batches:
+    for idx, commit_object in enumerate(commit_batches):
         branch_name = commit_object['branch']
         author = commit_object['author']
         start_date = commit_object['start_date']
@@ -86,12 +87,13 @@ def generate_summary(commit_batches, config):
             summary_result = f"Failed to generate summary for author: {author}, branch: {branch_name}"
             summary.append(summary_result)
 
-        # separator between different batches
-        summary.append("-" * 50)
-
         # print summary result to the console
         print(summary_result)
-        print("-" * 50)
+
+        if idx < len(commit_batches) - 1:
+            # separator between different batches
+            summary.append("-" * 50)
+            print("-" * 50)
 
     return "\n".join(summary)
 

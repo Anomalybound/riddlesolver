@@ -13,18 +13,15 @@ RiddleSolver is like a magical genie 🧞‍ that grants your wish to understand
 
 ## ✨ Features
 
-- 🔮 Unravels the mysteries of Git commits and reveals their true purpose
-- 🌿 Works its magic on both local and remote repositories (it's a versatile genie!)
-- 📅 Grants you the power to specify a custom date range or relative time periods (days, weeks, months)
-- 🔍 Categorizes changes using the enchanting gitmoji conventions (because even genies love emojis!)
-- 💡 Provides mind-blowing insights and observations about the commits (prepare to be enlightened!)
-- 🎛️ Allows you to summon the genie with configurable OpenAI API settings
-- 🌳 Lets you specify a branch to focus the genie's powers on
-- 🧙‍️ Enables you to summon commits by a specific author (because even genies play favorites!)
-- 📝 Grants you the ability to capture the genie's wisdom in a markdown file (for posterity, of course!)
-- 🔧 Bestows upon you the power to set configuration values using the mystical `config` subcommand
-- 🔑 Allows you to grant GitHub authentication using the magical `grant-auth` command
-- 🎯 Fetches only the unique commits dedicated to a certain branch, eliminating the issue of overlapping summarization
+- 🔮 Unravels the mysteries of Git commits and reveals their true purpose with mind-blowing insights
+- 🎯 Fetches only the unique commits dedicated to a certain branch, eliminating the hassle of overlapping commits
+- 🌿 Works its magic on both local repositories and remote GitHub repositories (no cloning required!)
+- 📅 Grants you the power to specify a custom date range, so you can focus on the commits that matter most
+- 🧙‍♂️ Enables you to summon commits by a specific author or branch, giving you full control over your analysis
+- 🔧 Bestows upon you the power to set configuration values using the intuitive config command
+- 🔑 Allows you to grant GitHub authentication effortlessly using the magical grant-auth command
+- 📦 Serves as a versatile development toolkit, providing a well-structured API for seamless integration into your projects
+- 🎨  Comes with a bonus Streamlit app, offering a delightful and intuitive user interface for commit analysis
 
 ## 🧪 Installation
 
@@ -164,7 +161,7 @@ The genie's secrets are stored in the sacred scroll located at `~/.riddlesolver`
 
 ```ini
 [openai]
-api_key = INPUT YOUR API KEY
+api_key = your_openai_api_key
 model = gpt-3.5-turbo
 base_url = https://api.openai.com/v1
 
@@ -173,7 +170,7 @@ cache_dir = ~/.cache/repo_cache
 cache_duration = 7
 
 [github]
-access_token = 
+access_token = your_github_access_token
 ```
 
 - `api_key`: Replace `INPUT YOUR API KEY` with your OpenAI API key (the genie needs it to work its magic!)
