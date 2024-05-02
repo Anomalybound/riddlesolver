@@ -1,7 +1,7 @@
 # RiddleSolver 🎩🔍
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.1.7-blue.svg)](https://github.com/AnomalyBound/riddlesolver)
+[![Version](https://img.shields.io/badge/version-0.1.8-blue.svg)](https://github.com/AnomalyBound/riddlesolver)
 [![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver/commits)
 
 [![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver)
