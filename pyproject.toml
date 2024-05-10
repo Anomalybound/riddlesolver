@@ -25,6 +25,7 @@ dependencies = [
     "gitpython",
     "openai",
     "requests",
+    "pyperclip"
 ]
 
 [project.scripts]
