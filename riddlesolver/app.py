@@ -1,4 +1,6 @@
 import argparse
+
+from __version__ import __version__
 from datetime import datetime, timedelta
 
 from config import load_config_from_file, save_config_to_file, get_config_value, set_config_value, grant_github_auth
@@ -27,6 +29,14 @@ def main():
         grant_github_auth()
         save_config_to_file(config)
         print("GitHub authentication granted.")
+        return
+
+    if args.command == "version" or args.version:
+        print(f"Riddlesolver version {get_version()}")
+        return
+
+    if not args.repo:
+        print("Please provide a repository path or URL.")
         return
 
     repo_path = args.repo
@@ -61,8 +71,9 @@ def parse_arguments():
     parser.add_argument("-b", "--branch", help="Branch name")
     parser.add_argument("-a", "--author", help="Author name or email")
     parser.add_argument("-o", "--output", help="Output file path")
-    parser.add_argument("-c", "--command", choices=["config", "grant-auth"], help="Command to execute")
+    parser.add_argument("-c", "--command", choices=["config", "grant-auth", "version"], help="Command to execute")
     parser.add_argument("config_args", nargs="*", help="Arguments for the 'config' command")
+    parser.add_argument("-v", "--version", action="store_true", help="Show version information")
     return parser.parse_args()
 
 
@@ -83,6 +94,10 @@ def get_date_range(args):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=DEFAULT_SETTINGS["default_date_range"])
     return start_date, end_date
+
+
+def get_version():
+    return __version__
 
 
 if __name__ == "__main__":
