@@ -163,6 +163,11 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
                     continue
 
                 branch_commits = list(repo.iter_commits(remote_branch, author=author))
+
+                # sort commits by date
+                branch_commits = sorted(branch_commits, key=lambda x: x.committed_datetime, reverse=True)
+
+                # filter out commits outside the date range
                 branch_commits = [commit for commit in branch_commits if
                                   start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
                 commits[remote_branch] = branch_commits
