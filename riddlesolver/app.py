@@ -1,6 +1,6 @@
 import argparse
+import __version__
 
-from __version__ import __version__
 from datetime import datetime, timedelta
 
 from config import load_config_from_file, save_config_to_file, get_config_value, set_config_value, grant_github_auth
@@ -97,7 +97,7 @@ def get_date_range(args):
 
 
 def get_version():
-    return __version__
+    return __version__.__version__
 
 
 if __name__ == "__main__":
