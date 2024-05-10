@@ -233,8 +233,6 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
 
     if not cache_duration:
         cache_duration = 7
-    else:
-        cache_duration = int(cache_duration)
 
     if not cache_dir or not os.path.exists(cache_dir):
         cache_dir = os.path.expanduser("~/.cache/repo_cache")
