@@ -2,16 +2,18 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
+from dateutil.parser import parse
 from git import Repo, InvalidGitRepositoryError
 
 from riddlesolver.config import get_config_value
 from riddlesolver.utils import (
     extract_owner_repo, get_base_branch_map, get_all_unique_commits,
-    get_base_branch_map_local, get_all_unique_commits_local
+    get_base_branch_map_local, get_all_unique_commits_local, get_all_commits
 )
 
 
-def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None):
+def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None,
+                  config=None, cache_dir=None):
     """
     Fetches commits from a repository within the specified date range.
 
@@ -23,6 +25,8 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
         author (str): The author name or email.
         access_token (str): The access token for authentication.
         repo_type (str): The repository type (github, gitlab, local, remote).
+        config (dict): The configuration dictionary.
+        cache_dir (str): The cache directory.
 
     Returns:
         list: stores the branch, author, datetime ranges and the commits
@@ -30,7 +34,7 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
     if repo_type == "github":
         if not access_token:
             print(f'There is no access token for {repo_path}, pulling remote commits without authentication.')
-            return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author)
+            return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author, config, cache_dir)
             # raise ValueError("GitHub access token is required.")
         repo_path_result = extract_owner_repo(repo_path)
         if not repo_path_result:
@@ -38,14 +42,15 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
         return fetch_commits_from_github(repo_path_result, start_date, end_date, branch, author, access_token)
     elif repo_type == "gitlab":
         # GitLab is not implemented yet
-        return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author)
+        return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author, config)
     elif repo_type == "local":
         return fetch_commits_from_local(repo_path, start_date, end_date, branch, author)
     elif repo_type == "remote":
-        return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author)
+        return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author, config)
 
 
-def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, author=None, access_token=None):
+def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, author=None, access_token=None,
+                              unique_commits=False):
     """
     Fetches commits from a GitHub repository.
 
@@ -56,6 +61,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
         branch (str): The branch name.
         author (str): The author name or email.
         access_token (str): The GitHub access token for authentication.
+        unique_commits (bool): Whether to fetch unique commits.
 
     Returns:
         list: stores the branch, author, datetime ranges and the commits
@@ -64,13 +70,19 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
     results = []
 
     print(f'Collecting unique commits from {repo_path}...')
-    base_branch_map, caches = get_base_branch_map(repo_path=repo_path, start_date=start_date, end_date=end_date,
-                                                  access_token=access_token, author=author)
-    unique_commits = get_all_unique_commits(repo_path=repo_path, base_branch_map=base_branch_map, commits_caches=caches,
-                                            start_date=start_date, end_date=end_date, access_token=access_token,
-                                            author=author)
 
-    for unique_commit_pair in unique_commits.items():
+    if unique_commits:
+        base_branch_map, caches = get_base_branch_map(repo_path=repo_path, start_date=start_date, end_date=end_date,
+                                                      access_token=access_token, author=author)
+        commits = get_all_unique_commits(repo_path=repo_path, base_branch_map=base_branch_map, commits_caches=caches,
+                                         start_date=start_date, end_date=end_date, access_token=access_token,
+                                         author=author)
+    else:
+        commits = get_all_commits(repo_path=repo_path, start_date=start_date, end_date=end_date,
+                                  access_token=access_token,
+                                  author=author)
+
+    for unique_commit_pair in commits.items():
         branch_name = unique_commit_pair[0]
         commits = unique_commit_pair[1]
 
@@ -87,6 +99,18 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
             commits_by_author[author].append(commit)
 
         for author, commits in commits_by_author.items():
+
+            # sort commits by date
+            commits = sorted(commits, key=lambda x: x["commit"]["author"]["date"], reverse=True)
+
+            # convert string date to datetime
+            for commit in commits:
+                commit["commit"]["author"]["date"] = parse(commit["commit"]["author"]["date"]).replace(tzinfo=None)
+
+            # filter out commits outside the date range
+            commits = [commit for commit in commits if
+                       start_date <= commit["commit"]["author"]["date"] <= end_date]
+
             # Ignore branches with no commits
             if len(commits) <= 0:
                 continue
@@ -107,7 +131,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
     return results
 
 
-def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, author=None):
+def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, author=None, unique_commits=False):
     """
     Fetches commits from a local repository.
 
@@ -117,6 +141,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
         end_date (datetime): The end date of the date range.
         branch (str): The branch name.
         author (str): The author name or email.
+        unique_commits (bool): Whether to fetch unique commits.
 
     Returns:
         list: stores the branch, author, datetime ranges and the commits
@@ -125,11 +150,24 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
         repo = Repo(repo_path)
         results = []
 
-        # Get the base branch map and unique commits for local repository
-        base_branch_map = get_base_branch_map_local(repo, start_date, end_date, author)
-        unique_commits = get_all_unique_commits_local(repo, base_branch_map, start_date, end_date, author)
+        if unique_commits:
+            # Get the base branch map and unique commits for local repository
+            base_branch_map = get_base_branch_map_local(repo, start_date, end_date, author)
+            commits = get_all_unique_commits_local(repo, base_branch_map, start_date, end_date, author)
+        else:
+            commits = {}
+            remote_branches = repo.git.branch('-r').split('\n')
+            for remote_branch in remote_branches:
+                remote_branch = remote_branch.strip()
+                if remote_branch.startswith('origin/HEAD'):
+                    continue
 
-        for branch_name, commits in unique_commits.items():
+                branch_commits = list(repo.iter_commits(remote_branch, author=author))
+                branch_commits = [commit for commit in branch_commits if
+                                  start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+                commits[remote_branch] = branch_commits
+
+        for branch_name, commits in commits.items():
             # If branch is specified, filter by branch name
             if branch is not None and branch_name != branch:
                 continue
@@ -164,7 +202,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
         raise ValueError(f"Invalid Git repository: {repo_path}")
 
 
-def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, author=None):
+def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, author=None, config=None, cache_dir=None):
     """
     Fetches commits from a remote repository.
 
@@ -174,12 +212,25 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
         end_date (datetime): The end date of the date range.
         branch (str): The branch name.
         author (str): The author name or email.
+        config (dict): The configuration dictionary.
+        cache_dir (str): The cache directory.
 
     Returns:
         list: stores the branch, author, datetime ranges and the commits
     """
 
-    cache_dir = get_config_value("general", "cache_dir")
+    if config:
+        cache_dir = config.get("general", "cache_dir") if not cache_dir else cache_dir
+        cache_duration = config.get("general", "cache_duration")
+    else:
+        cache_dir = get_config_value("general", "cache_dir") if not cache_dir else cache_dir
+        cache_duration = get_config_value("general", "cache_duration")
+
+    if not cache_duration:
+        cache_duration = 7
+    else:
+        cache_duration = int(cache_duration)
+
     if not cache_dir or not os.path.exists(cache_dir):
         cache_dir = os.path.expanduser("~/.cache/repo_cache")
         cache_dir = os.path.normpath(cache_dir)
@@ -187,12 +238,6 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
         print(f'Cache directory not specified, using default cache directory: {cache_dir}')
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir, exist_ok=True)
-
-    cache_duration = get_config_value("general", "cache_duration")
-    if cache_duration is None:
-        cache_duration = 7  # Default cache duration of 7 days
-    else:
-        cache_duration = int(cache_duration)
 
     repo_name = repo_url.split("/")[-1].split(".")[0]
     repo_cache_dir = os.path.join(cache_dir, repo_name)

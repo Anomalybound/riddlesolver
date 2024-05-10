@@ -306,6 +306,53 @@ def get_all_unique_commits(repo_path, base_branch_map, commits_caches, start_dat
     return unique_commits_map
 
 
+def get_all_commits(repo_path, start_date, end_date, access_token, author=None):
+    """
+    Get the commits for each branch in a GitHub repository.
+    Args:
+        repo_path: owner/repo format
+        start_date: The start date of the date range.
+        end_date: The end date of the date range.
+        access_token: GitHub access token
+        author: The author name or email.
+
+    Returns:
+        dict: A dictionary mapping each branch to its commits.
+    """
+    # Set the base URL for the GitHub API
+    base_url = f'https://api.github.com/repos/{repo_path}'
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {access_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+    commit_params = {
+        "since": start_date.isoformat(),
+        "until": end_date.isoformat(),
+    }
+
+    if author:
+        commit_params["author"] = author
+
+    # Get the list of branches in the repository
+    branches_url = f'{base_url}/branches'
+    branches_response = requests.get(branches_url, headers=headers)
+    branches = [branch['name'] for branch in branches_response.json()]
+
+    commits_map = {}
+
+    for branch in branches:
+        # Fetch the list of commits for the current branch
+        query_url = f'{base_url}/commits?sha={branch}'
+        branch_response = requests.get(query_url, headers=headers, params=commit_params)
+        branch_commits = branch_response.json()
+
+        commits_map[branch] = branch_commits
+
+    return commits_map
+
+
 def get_base_branch_map_local(repo, start_date, end_date, author=None):
     """
     Get the base branch for each branch in a local repository.
@@ -323,8 +370,7 @@ def get_base_branch_map_local(repo, start_date, end_date, author=None):
     remote_branches = repo.git.branch('-r').split('\n')
     for branch in remote_branches:
         branch = branch.strip()
-        if branch.startswith('origin/') and branch != 'origin/HEAD -> origin/master':
-            branch = branch[7:]  # Remove 'origin/' prefix
+        if branch.startswith('origin/') and not branch.startswith('origin/HEAD'):
             branch_commits = list(repo.iter_commits(branch, author=author))
             branch_commits = [commit for commit in branch_commits if
                               start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
@@ -333,8 +379,7 @@ def get_base_branch_map_local(repo, start_date, end_date, author=None):
             base_branch_commits = []
             for other_branch in remote_branches:
                 other_branch = other_branch.strip()
-                if other_branch.startswith('origin/') and other_branch != 'origin/HEAD -> origin/master':
-                    other_branch = other_branch[7:]  # Remove 'origin/' prefix
+                if other_branch.startswith('origin/') and not other_branch.startswith('origin/HEAD'):
                     if other_branch != branch:
                         other_branch_commits = list(repo.iter_commits(other_branch, author=author))
                         other_branch_commits = [commit for commit in other_branch_commits if

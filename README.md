@@ -152,6 +152,7 @@ repo_type = "github"
 output_file = "summary.md"
 
 config = load_config_from_file()
+# you can pass in your cache directory or config dict as well
 batched_commits = fetch_commits(repo_path, start_date, end_date, branch, author, access_token, repo_type)
 summary = generate_summary(batched_commits, config)
 save_summary_to_file(summary, output_file)

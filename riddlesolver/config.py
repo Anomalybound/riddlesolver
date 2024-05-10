@@ -14,11 +14,11 @@ DEFAULT_CONFIG = {
         "base_url": "https://api.openai.com/v1"
     },
     "general": {
-        "cache_dir": None,
+        "cache_dir": "",
         "cache_duration": "7"
     },
     "github": {
-        "access_token": None
+        "access_token": ""
     }
 }
 
