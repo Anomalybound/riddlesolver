@@ -61,7 +61,7 @@ def generate_summary(commit_batches, config):
 
     Args:
         commit_batches (list): A list mapping authors to branches and their corresponding commits.
-        config (dict): The configuration dictionary.
+        config (config): The configuration dictionary.
 
     Returns:
         str: The generated summary.
@@ -81,7 +81,7 @@ def generate_summary(commit_batches, config):
             batch_summary = [
                 f"Author: {author}",
                 f"Branch: {branch_name}",
-                f"Period: {format_date(start_date)} to {format_date(end_date)} ({duration} days)",
+                f"Period: {format_date(start_date)} to {format_date(end_date)} ({duration} day(s))",
                 f"Summary of {len(commit_messages)} commits:",
                 openai_summary,
             ]

@@ -29,7 +29,7 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
         author (str): The author name or email.
         access_token (str): The access token for authentication.
         repo_type (str): The repository type (github, gitlab, local, remote).
-        config (dict): The configuration dictionary.
+        config (ConfigParser): The configuration dictionary.
         cache_dir (str): The cache directory.
 
     Returns:
@@ -164,7 +164,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
             remote_branches = repo.git.branch('-r').split('\n')
             for remote_branch in remote_branches:
                 remote_branch = remote_branch.strip()
-                if remote_branch.startswith('origin/HEAD'):
+                if remote_branch.contains("HEAD"):
                     continue
 
                 branch_commits = list(repo.iter_commits(remote_branch, author=author))
@@ -179,8 +179,11 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
 
         for branch_name, commits in commits.items():
             # If branch is specified, filter by branch name
-            if branch is not None and branch_name != branch:
-                continue
+            if branch:
+                # remove "origin/" prefix
+                stripped_branch_name = branch_name.split("/", 1)[1]
+                if stripped_branch_name != branch:
+                    continue
 
             # group commits by author
             commits_by_author = {}
