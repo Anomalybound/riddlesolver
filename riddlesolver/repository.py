@@ -29,7 +29,9 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
     """
     if repo_type == "github":
         if not access_token:
-            raise ValueError("GitHub access token is required.")
+            print(f'There is no access token for {repo_path}, pulling remote commits without authentication.')
+            return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author)
+            # raise ValueError("GitHub access token is required.")
         repo_path_result = extract_owner_repo(repo_path)
         if not repo_path_result:
             raise ValueError(f"Invalid GitHub repository link: {repo_path}")
@@ -207,7 +209,8 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
     if repo is None:
         # Clone the remote repository and cache it
         os.makedirs(cache_dir, exist_ok=True)
-        repo = Repo.clone_from(repo_url, repo_cache_dir, no_checkout=True, depth=1)  # Clone with minimal history
+        repo = Repo.clone_from(repo_url, repo_cache_dir, no_checkout=True, depth=1,
+                               filter='blob:none')  # Clone with minimal history
         repo.git.fetch(all=True)  # Fetch all branches and tags
 
     # Fetch the commits using the same logic as fetch_commits_from_local()

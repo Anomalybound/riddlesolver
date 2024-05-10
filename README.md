@@ -1,7 +1,9 @@
 # RiddleSolver 🎩🔍
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.1.8-blue.svg)](https://github.com/AnomalyBound/riddlesolver)
+[![Version](https://img.shields.io/badge/version-0.1.9-blue.svg)](https://github.com/AnomalyBound/riddlesolver)
 [![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver/commits)
 
 [![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver)
@@ -57,11 +59,11 @@ Replace `<repo>` with the path to your local repository, the URL of a remote rep
 - `-o`, `--output`: Specify the path to save the genie's wisdom as a markdown file
 - `-c`, `--command`: Execute a command (`config` or `grant-auth`)
 
-⚠️ **IMPORTANT**: When using RiddleSolver with GitHub remote repositories, you must ensure that you have a valid access token:
+⚠️ **IMPORTANT**: When using RiddleSolver with GitHub remote repositories, you have two options:
 
-- You can either use the `grant-auth` command to grant the necessary permissions 
-- Or you can manually configure the access token in the configuration file (with 'content read' permission). 
-> Please note that manually configured access tokens may be subject to rate limits imposed by GitHub. It is recommended to use the `grant-auth` command for a more seamless experience.
+1. Use the `grant-auth` command to grant the necessary permissions and utilize the GitHub API for fetching commits. 
+
+2. If you choose not to grant authentication, RiddleSolver will still work and fetch commits without using the GitHub API.
 
 ### Configuring the Genie
 
@@ -124,7 +126,7 @@ RiddleSolver not only serves as a command-line tool but also provides a well-str
 
 ### **API Functions**
 
-1.  `fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None)`: Fetches commits from a repository within the specified date range, optionally filtered by branch and author. Returns a list of commit objects.
+1.  `fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None)`: Fetches commits from a repository within the specified date range, optionally filtered by branch and author. If `access_token` is provided and `repo_type` is set to `"github"`, it will use the GitHub API to fetch commits. Otherwise, it will fetch commits without using the API. Returns a list of commit objects.
     
 2.  `generate_summary(commit_batches, config)`: Generates a summary of commit batches using the OpenAI API. Returns the generated summary as a string.
     
@@ -191,9 +193,5 @@ RiddleSolver is released under the [MIT License](https://opensource.org/licenses
 ## 🙏 Acknowledgements
 
 The genie would like to express its gratitude to the mighty OpenAI for granting it the power of language understanding and generation. Without their API, the genie would be just another ordinary commit summarizer.
-
-## 🚀 Version
-
-RiddleSolver is currently at version 0.1.7, ready to unravel the mysteries of your Git commits like never before!
 
 Now, prepare to be amazed as RiddleSolver unravels the mysteries of your Git commits and brings clarity to your development journey! 🎉✨
