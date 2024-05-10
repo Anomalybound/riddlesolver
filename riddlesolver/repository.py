@@ -164,7 +164,7 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
             remote_branches = repo.git.branch('-r').split('\n')
             for remote_branch in remote_branches:
                 remote_branch = remote_branch.strip()
-                if remote_branch.contains("HEAD"):
+                if "HEAD" in remote_branch:
                     continue
 
                 branch_commits = list(repo.iter_commits(remote_branch, author=author))
