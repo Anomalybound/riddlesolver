@@ -217,7 +217,7 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
         end_date (datetime): The end date of the date range.
         branch (str): The branch name.
         author (str): The author name or email.
-        config (dict): The configuration dictionary.
+        config (configparser.ConfigParser): The configuration to save.
         cache_dir (str): The cache directory.
 
     Returns:

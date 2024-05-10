@@ -105,7 +105,7 @@ def get_openai_summary(commit_messages, branch_name, config):
     Args:
         commit_messages (list): The list of commit messages.
         branch_name (str): The branch name.
-        config (dict): The configuration dictionary.
+        config (configparser.ConfigParser): The configuration object.
 
     Returns:
         str: The generated summary.
