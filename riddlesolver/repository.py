@@ -180,8 +180,13 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
     """
 
     cache_dir = get_config_value("general", "cache_dir")
-    if cache_dir is None:
+    if not cache_dir or not os.path.exists(cache_dir):
         cache_dir = os.path.expanduser("~/.cache/repo_cache")
+        cache_dir = os.path.normpath(cache_dir)
+
+        print(f'Cache directory not specified, using default cache directory: {cache_dir}')
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
 
     cache_duration = get_config_value("general", "cache_duration")
     if cache_duration is None:
@@ -209,9 +214,12 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
     if repo is None:
         # Clone the remote repository and cache it
         os.makedirs(cache_dir, exist_ok=True)
-        repo = Repo.clone_from(repo_url, repo_cache_dir, no_checkout=True, depth=1,
+        repo = Repo.clone_from(repo_url, repo_cache_dir, no_checkout=True,
                                filter='blob:none')  # Clone with minimal history
         repo.git.fetch(all=True)  # Fetch all branches and tags
+    else:
+        # Fetch the latest changes in the repository
+        repo.git.fetch(all=True)
 
     # Fetch the commits using the same logic as fetch_commits_from_local()
     results = fetch_commits_from_local(repo_cache_dir, start_date, end_date, branch, author)

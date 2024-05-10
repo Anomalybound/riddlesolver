@@ -320,29 +320,32 @@ def get_base_branch_map_local(repo, start_date, end_date, author=None):
     """
     base_branch_map = {}
 
-    # Fetch remote branches
-    repo.remotes.origin.fetch()
+    remote_branches = repo.git.branch('-r').split('\n')
+    for branch in remote_branches:
+        branch = branch.strip()
+        if branch.startswith('origin/') and branch != 'origin/HEAD -> origin/master':
+            branch = branch[7:]  # Remove 'origin/' prefix
+            branch_commits = list(repo.iter_commits(branch, author=author))
+            branch_commits = [commit for commit in branch_commits if
+                              start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
 
-    for ref in repo.remotes.origin.refs:
-        branch = ref.name.split('/')[-1]
-        branch_commits = list(repo.iter_commits(ref, author=author))
-        branch_commits = [commit for commit in branch_commits if
-                          start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
+            base_branch = None
+            base_branch_commits = []
+            for other_branch in remote_branches:
+                other_branch = other_branch.strip()
+                if other_branch.startswith('origin/') and other_branch != 'origin/HEAD -> origin/master':
+                    other_branch = other_branch[7:]  # Remove 'origin/' prefix
+                    if other_branch != branch:
+                        other_branch_commits = list(repo.iter_commits(other_branch, author=author))
+                        other_branch_commits = [commit for commit in other_branch_commits if
+                                                start_date <= commit.committed_datetime.replace(
+                                                    tzinfo=None) <= end_date]
+                        common_commits = set(branch_commits) & set(other_branch_commits)
+                        if len(common_commits) > len(base_branch_commits):
+                            base_branch = other_branch
+                            base_branch_commits = other_branch_commits
 
-        base_branch = None
-        base_branch_commits = []
-        for other_ref in repo.remotes.origin.refs:
-            other_branch = other_ref.name.split('/')[-1]
-            if other_branch != branch:
-                other_branch_commits = list(repo.iter_commits(other_ref, author=author))
-                other_branch_commits = [commit for commit in other_branch_commits if
-                                        start_date <= commit.committed_datetime.replace(tzinfo=None) <= end_date]
-                common_commits = set(branch_commits) & set(other_branch_commits)
-                if len(common_commits) > len(base_branch_commits):
-                    base_branch = other_branch
-                    base_branch_commits = other_branch_commits
-
-        base_branch_map[branch] = base_branch
+            base_branch_map[branch] = base_branch
 
     return base_branch_map
 
