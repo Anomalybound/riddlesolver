@@ -30,7 +30,7 @@ RiddleSolver 就像一个神奇的精灵🧞‍,它可以满足你理解 Git com
 要释放 RiddleSolver 的强大力量,只需在终端中念出以下咒语:
 
 ```bash
-pip install riddlesolver
+pip install --upgrade riddlesolver
 ```
 
 瞧!精灵现在听候你的差遣了!🧞️✨

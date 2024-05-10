@@ -30,7 +30,7 @@ RiddleSolver is like a magical genie 🧞‍ that grants your wish to understand
 To unleash the power of RiddleSolver, simply recite the following incantation in your terminal:
 
 ```bash
-pip install riddlesolver
+pip install --upgrade riddlesolver
 ```
 
 And voila! The genie is now at your command! 🧞️✨
