@@ -1,13 +1,13 @@
 import argparse
-from riddlesolver import __version__
 
 from datetime import datetime, timedelta
 
-from config import load_config_from_file, save_config_to_file, get_config_value, set_config_value, grant_github_auth
-from constants import DEFAULT_SETTINGS
-from repository import fetch_commits
-from summary import generate_commit_summary
-from utils import parse_date, handle_error, validate_arguments, get_repository_type
+from riddlesolver import __version__
+from riddlesolver.config import load_config_from_file, save_config_to_file, get_config_value, set_config_value, grant_github_auth
+from riddlesolver.constants import DEFAULT_SETTINGS
+from riddlesolver.repository import fetch_commits
+from riddlesolver.summary import generate_commit_summary
+from riddlesolver.utils import parse_date, handle_error, validate_arguments, get_repository_type
 
 
 def main():

@@ -2,8 +2,8 @@ from collections import defaultdict
 
 import openai
 
-from constants import SUMMARY_PROMPT_TEMPLATE
-from utils import format_date, handle_error, calculate_days_between_dates
+from riddlesolver.constants import SUMMARY_PROMPT_TEMPLATE
+from riddlesolver.utils import format_date, handle_error, calculate_days_between_dates
 
 
 def generate_commit_summary(batched_commits, config, output_file=None):

@@ -4,7 +4,7 @@ from datetime import datetime
 import requests
 from dateutil.parser import parse
 
-from constants import DATE_FORMAT
+from riddlesolver.constants import DATE_FORMAT
 
 
 def parse_date(date_string):

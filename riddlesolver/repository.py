@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from git import Repo, InvalidGitRepositoryError
 
-from config import get_config_value
-from utils import (
+from riddlesolver.config import get_config_value
+from riddlesolver.utils import (
     extract_owner_repo, get_base_branch_map, get_all_unique_commits,
     get_base_branch_map_local, get_all_unique_commits_local
 )
