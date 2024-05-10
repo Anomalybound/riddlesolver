@@ -78,10 +78,11 @@ def generate_summary(commit_batches, config):
         duration = max(1, calculate_days_between_dates(start_date, end_date))
         openai_summary = get_openai_summary(commit_messages, branch_name, config)
         if openai_summary:
+            day_plural = "day" if duration == 1 else "days"
             batch_summary = [
                 f"Author: {author}",
                 f"Branch: {branch_name}",
-                f"Period: {format_date(start_date)} to {format_date(end_date)} ({duration} day(s))",
+                f"Period: {format_date(start_date)} to {format_date(end_date)} ({duration} {day_plural})",
                 f"Summary of {len(commit_messages)} commits:",
                 openai_summary,
             ]
