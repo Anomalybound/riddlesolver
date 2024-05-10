@@ -31,7 +31,7 @@ dependencies = [
 riddlesolver = "riddlesolver.app:main"
 
 [tool.hatch.version]
-path = "riddlesolver/__version__.py"
+path = "riddlesolver/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["riddlesolver"]

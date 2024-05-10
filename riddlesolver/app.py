@@ -1,5 +1,5 @@
 import argparse
-import __version__
+from riddlesolver import __version__
 
 from datetime import datetime, timedelta
 
@@ -97,7 +97,7 @@ def get_date_range(args):
 
 
 def get_version():
-    return __version__.__version__
+    return __version__
 
 
 if __name__ == "__main__":
