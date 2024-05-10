@@ -1,5 +1,6 @@
 import os
 import shutil
+import logging
 from datetime import datetime, timedelta
 
 from dateutil.parser import parse
@@ -10,6 +11,9 @@ from riddlesolver.utils import (
     extract_owner_repo, get_base_branch_map, get_all_unique_commits,
     get_base_branch_map_local, get_all_unique_commits_local, get_all_commits
 )
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, access_token=None, repo_type=None,
@@ -33,11 +37,11 @@ def fetch_commits(repo_path, start_date, end_date, branch=None, author=None, acc
     """
     if repo_type == "github":
         if not access_token:
-            print(f'There is no access token for {repo_path}, pulling remote commits without authentication.')
+            logger.warning(f'There is no access token for {repo_path}, pulling remote commits without authentication.')
             return fetch_commits_from_remote(repo_path, start_date, end_date, branch, author, config, cache_dir)
-            # raise ValueError("GitHub access token is required.")
         repo_path_result = extract_owner_repo(repo_path)
         if not repo_path_result:
+            logger.error(f"Invalid GitHub repository link: {repo_path}")
             raise ValueError(f"Invalid GitHub repository link: {repo_path}")
         return fetch_commits_from_github(repo_path_result, start_date, end_date, branch, author, access_token)
     elif repo_type == "gitlab":
@@ -69,7 +73,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
 
     results = []
 
-    print(f'Collecting unique commits from {repo_path}...')
+    logger.info(f'Collecting unique commits from {repo_path}...')
 
     if unique_commits:
         base_branch_map, caches = get_base_branch_map(repo_path=repo_path, start_date=start_date, end_date=end_date,
@@ -128,6 +132,7 @@ def fetch_commits_from_github(repo_path, start_date, end_date, branch=None, auth
                 "commit_messages": messages
             })
 
+    logger.info(f'Fetched {len(results)} unique commits from {repo_path}.')
     return results
 
 
@@ -202,8 +207,10 @@ def fetch_commits_from_local(repo_path, start_date, end_date, branch=None, autho
                     "commit_messages": messages
                 })
 
+        logger.info(f'Fetched {len(results)} commits from local repository: {repo_path}.')
         return results
     except InvalidGitRepositoryError:
+        logger.error(f"Invalid Git repository: {repo_path}")
         raise ValueError(f"Invalid Git repository: {repo_path}")
 
 
@@ -233,14 +240,17 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
 
     if not cache_duration:
         cache_duration = 7
+        logger.warning(f"Cache duration not specified. Using default value: {cache_duration} days.")
 
     if not cache_dir or not os.path.exists(cache_dir):
         cache_dir = os.path.expanduser("~/.cache/repo_cache")
         cache_dir = os.path.normpath(cache_dir)
 
-        print(f'Cache directory not specified, using default cache directory: {cache_dir}')
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir, exist_ok=True)
+            logger.info(f"Created cache directory: {cache_dir}")
+        else:
+            logger.info(f"Using cache directory: {cache_dir}")
 
     repo_name = repo_url.split("/")[-1].split(".")[0]
     repo_cache_dir = os.path.join(cache_dir, repo_name)
@@ -252,9 +262,11 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
         if cache_expiry > datetime.now():
             # Use the cached repository
             repo = Repo(repo_cache_dir)
+            logger.info(f"Using cached repository: {repo_cache_dir}")
         else:
             # Cache has expired, remove the cached repository
             shutil.rmtree(repo_cache_dir)
+            logger.info(f"Cache expired. Removing cached repository: {repo_cache_dir}")
             repo = None
     else:
         repo = None
@@ -262,14 +274,18 @@ def fetch_commits_from_remote(repo_url, start_date, end_date, branch=None, autho
     if repo is None:
         # Clone the remote repository and cache it
         os.makedirs(cache_dir, exist_ok=True)
+        logger.info(f"Cloning remote repository: {repo_url}")
         repo = Repo.clone_from(repo_url, repo_cache_dir, no_checkout=True,
                                filter='blob:none')  # Clone with minimal history
         repo.git.fetch(all=True)  # Fetch all branches and tags
+        logger.info(f"Cloned repository cached at: {repo_cache_dir}")
     else:
         # Fetch the latest changes in the repository
         repo.git.fetch(all=True)
+        logger.info(f"Fetched latest changes from remote repository: {repo_url}")
 
     # Fetch the commits using the same logic as fetch_commits_from_local()
     results = fetch_commits_from_local(repo_cache_dir, start_date, end_date, branch, author)
 
+    logger.info(f'Fetched {len(results)} commits from remote repository: {repo_url}.')
     return results

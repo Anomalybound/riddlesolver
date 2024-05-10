@@ -1,9 +1,13 @@
 from collections import defaultdict
+import logging
 
 import openai
 
 from riddlesolver.constants import SUMMARY_PROMPT_TEMPLATE
 from riddlesolver.utils import format_date, handle_error, calculate_days_between_dates
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def generate_commit_summary(batched_commits, config, output_file=None):
@@ -16,18 +20,18 @@ def generate_commit_summary(batched_commits, config, output_file=None):
         output_file (str): The path to the output file.
     """
     if not batched_commits or len(batched_commits) == 0:
-        print("No commits found within the specified date range.")
+        logger.warning("No commits found within the specified date range.")
         return
 
-    print("=" * 50)
+    logger.info("=" * 50)
 
     summary = generate_summary(batched_commits, config)
 
     if output_file:
         save_summary_to_file(summary, output_file)
 
-    print("=" * 50)
-    print("Summary generation complete.")
+    logger.info("=" * 50)
+    logger.info("Summary generation complete.")
     return summary
 
 
@@ -83,17 +87,19 @@ def generate_summary(commit_batches, config):
             ]
             summary_result = "\n".join(batch_summary)
             summary.append(summary_result)
+            logger.info(f"Generated summary for author: {author}, branch: {branch_name}")
         else:
             summary_result = f"Failed to generate summary for author: {author}, branch: {branch_name}"
             summary.append(summary_result)
+            logger.warning(f"Failed to generate summary for author: {author}, branch: {branch_name}")
 
         # print summary result to the console
-        print(summary_result)
+        logger.info(summary_result)
 
         if idx < len(commit_batches) - 1:
             # separator between different batches
             summary.append("-" * 50)
-            print("-" * 50)
+            logger.info("-" * 50)
 
     return "\n".join(summary)
 
@@ -124,21 +130,23 @@ def get_openai_summary(commit_messages, branch_name, config):
             }]
         )
         if response.choices:
-            return response.choices[0].message.content.strip()
+            summary = response.choices[0].message.content.strip()
+            logger.info(f"Generated summary using OpenAI API: {summary}")
+            return summary
         else:
-            print("OpenAI API returned an empty response.")
+            logger.warning("OpenAI API returned an empty response.")
             return None
     except openai.RateLimitError:
-        print("OpenAI API request exceeded rate limit.")
+        logger.error("OpenAI API request exceeded rate limit.")
         return None
     except openai.AuthenticationError:
-        print("OpenAI API authentication failed. Please check your API key.")
+        logger.error("OpenAI API authentication failed. Please check your API key.")
         return None
     except openai.APIError as e:
-        print(f"OpenAI API Error: {str(e)}")
+        logger.error(f"OpenAI API Error: {str(e)}")
         return None
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
         return None
 
 
@@ -153,6 +161,7 @@ def save_summary_to_file(summary, output_file):
     try:
         with open(output_file, "w") as file:
             file.write(summary)
-        print(f"Summary saved to {output_file}")
+        logger.info(f"Summary saved to {output_file}")
     except IOError as e:
+        logger.error(f"Error saving summary to file: {str(e)}")
         handle_error(e)

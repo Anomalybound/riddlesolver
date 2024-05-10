@@ -1,4 +1,5 @@
 import configparser
+import logging
 import time
 from pathlib import Path
 
@@ -22,6 +23,9 @@ DEFAULT_CONFIG = {
     }
 }
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 
 def get_config():
     """
@@ -32,6 +36,7 @@ def get_config():
     """
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
+    logger.info("Configuration loaded from file.")
     return config
 
 
@@ -42,6 +47,9 @@ def set_config(config):
     Args:
         config (configparser.ConfigParser): The configuration to save.
     """
+    with open(CONFIG_FILE, "w") as config_file:
+        config.write(config_file)
+    logger.info("Configuration saved to file.")
 
 
 def load_config_from_file():
@@ -55,8 +63,10 @@ def load_config_from_file():
     if not Path(CONFIG_FILE).exists():
         config.read_dict(DEFAULT_CONFIG)
         save_config_to_file(config)
+        logger.info("Default configuration created and saved to file.")
     else:
         config.read(CONFIG_FILE)
+        logger.info("Configuration loaded from file.")
     return config
 
 
@@ -69,6 +79,7 @@ def save_config_to_file(config):
     """
     with open(CONFIG_FILE, "w") as config_file:
         config.write(config_file)
+    logger.info("Configuration saved to file.")
 
 
 def get_default_config():
@@ -80,6 +91,7 @@ def get_default_config():
     """
     config = configparser.ConfigParser()
     config.read_dict(DEFAULT_CONFIG)
+    logger.info("Default configuration loaded.")
     return config
 
 
@@ -95,7 +107,9 @@ def get_config_value(section, key):
         str: The value of the configuration option.
     """
     config = load_config_from_file()
-    return config.get(section, key, fallback=None)
+    value = config.get(section, key, fallback=None)
+    logger.info(f"Retrieved configuration value: [{section}] {key} = {value}")
+    return value
 
 
 def set_config_value(section, key, value):
@@ -111,6 +125,7 @@ def set_config_value(section, key, value):
     if section not in config:
         config.add_section(section)
     config.set(section, key, value)
+    logger.info(f"Configuration value set: [{section}] {key} = {value}")
 
 
 def grant_github_auth():
@@ -127,14 +142,16 @@ def grant_github_auth():
 
     # save the user_code to the clipboard
     pyperclip.copy(user_code)
-    print(f'User code copied to clipboard: {user_code}')
-    print(f"Please go to {verification_uri} and enter the code {user_code} to authenticate.")
+    logger.info(f'User code copied to clipboard: {user_code}')
+    logger.info(f"Please go to {verification_uri} and enter the code {user_code} to authenticate.")
 
     access_token = poll_for_token(device_code, interval)
     if access_token:
         set_config_value(section="github", key="access_token", value=access_token)
         save_config_to_file(config)
-        print("GitHub authentication successful.")
+        logger.info("GitHub authentication successful.")
+    else:
+        logger.error("GitHub authentication failed.")
 
 
 def request_device_code():
@@ -150,6 +167,7 @@ def request_device_code():
 
     response = requests.post(url, data=parameters, headers=headers)
     response.raise_for_status()
+    logger.info("Device code requested from GitHub.")
     return response.json()
 
 
@@ -165,6 +183,7 @@ def request_token(device_code):
 
     response = requests.post(uri, data=parameters, headers=headers)
     response.raise_for_status()
+    logger.info("Access token requested from GitHub.")
     return response.json()
 
 
@@ -184,23 +203,21 @@ def poll_for_token(device_code, interval):
         if error:
             if error == "authorization_pending":
                 time.sleep(interval)
-                # The user has not yet entered the code.
-                # Wait, then poll again.
+                logger.info("Authorization pending. Waiting before polling again.")
                 continue
             elif error == "slow_down":
                 time.sleep(interval + 5)
-                # The app polled too fast.
-                # Wait for the interval plus 5 seconds, then poll again.
+                logger.warning("Polling too fast. Waiting for an extended interval before polling again.")
                 continue
             elif error == "expired_token":
-                # The `device_code` expired, and the process needs to restart.
-                print("The device code has expired. Please run `login` again.")
+                logger.error("The device code has expired. Please run `login` again.")
+                return None
             elif error == "access_denied":
-                # The user cancelled the process. Stop polling.
-                print("Login cancelled by user.")
-                return
+                logger.info("Login cancelled by user.")
+                return None
             else:
-                print(response)
-                return
+                logger.error(f"Error occurred during polling: {response}")
+                return None
         else:
+            logger.info("Access token obtained from GitHub.")
             return access_token

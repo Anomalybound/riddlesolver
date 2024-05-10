@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from datetime import datetime, timedelta
 
@@ -10,6 +11,10 @@ from riddlesolver.summary import generate_commit_summary
 from riddlesolver.utils import parse_date, handle_error, validate_arguments, get_repository_type
 
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
 def main():
     config = load_config_from_file()
     args = parse_arguments()
@@ -19,24 +24,24 @@ def main():
             section, key, value = args.config_args
             set_config_value(section, key, value)
             save_config_to_file(config)
-            print(f"Configuration updated: [{section}] {key} = {value}")
+            logger.info(f"Configuration updated: [{section}] {key} = {value}")
         else:
-            print("Invalid number of arguments for 'config' command.")
-            print("Usage: riddlesolver -c config <section> <key> <value>")
+            logger.error("Invalid number of arguments for 'config' command.")
+            logger.info("Usage: riddlesolver -c config <section> <key> <value>")
         return
 
     if args.command == "grant-auth":
         grant_github_auth()
         save_config_to_file(config)
-        print("GitHub authentication granted.")
+        logger.info("GitHub authentication granted.")
         return
 
     if args.command == "version" or args.version:
-        print(f"Riddlesolver version {get_version()}")
+        logger.info(f"Riddlesolver version {get_version()}")
         return
 
     if not args.repo:
-        print("Please provide a repository path or URL.")
+        logger.error("Please provide a repository path or URL.")
         return
 
     repo_path = args.repo
@@ -54,7 +59,7 @@ def main():
         author = f" by '{author}'" if author else ""
         start_date = start_date.strftime("%Y-%m-%d")
         end_date = end_date.strftime("%Y-%m-%d")
-        print(f"Start generating commits summary ({start_date} to {end_date}){branch}{author}:")
+        logger.info(f"Start generating commits summary ({start_date} to {end_date}){branch}{author}:")
         generate_commit_summary(batched_commits, config, output_file)
     except Exception as e:
         handle_error(e)
