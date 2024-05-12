@@ -2,8 +2,9 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://badge.fury.io/py/riddlesolver.svg)](https://badge.fury.io/py/riddlesolver)
+![GitHub License](https://img.shields.io/github/license/anomalybound/riddlesolver)
+![PyPI - Version](https://img.shields.io/pypi/v/riddlesolver)
+
 [![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver/commits)
 
 [![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver)
