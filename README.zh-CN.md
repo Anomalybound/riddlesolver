@@ -3,11 +3,11 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 ![GitHub License](https://img.shields.io/github/license/anomalybound/riddlesolver)
-![PyPI - Version](https://img.shields.io/pypi/v/riddlesolver)
-[![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver/commits)
+![Last Commit](https://img.shields.io/github/last-commit/AnomalyBound/riddlesolver)
+![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)
 
-[![Code Size](https://img.shields.io/github/languages/code-size/AnomalyBound/riddlesolver)](https://github.com/AnomalyBound/riddlesolver)
-[![Downloads](https://img.shields.io/pypi/dm/riddlesolver)](https://pypi.org/project/riddlesolver/)
+![PyPI - Version](https://img.shields.io/pypi/v/riddlesolver)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/riddlesolver)
 
 女士们,先生们,男孩和女孩们,欢迎来到有史以来最不可思议、最令人兴奋、最搞笑的 Git commit 总结器的世界!🤯🎪 隆重推出...RiddleSolver!🎭
 
